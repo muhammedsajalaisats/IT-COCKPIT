@@ -1,9 +1,9 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-13T16:42:16+05:30",
+  "last_updated": "2026-07-13T17:00:52+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
-      "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30"},
+      "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
       "step_1.2": {"task": "Setup Tailwind & Core CSS Variables", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Tailwind setup; updated typography contrast using light CSS variables and Chart.js options"}
     },
     "Phase_2_UI_Mockup": {
