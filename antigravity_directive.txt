@@ -1,0 +1,108 @@
+# 🤖 ANTIGRAVITY MASTER DIRECTIVE: IT COCKPIT DEVELOPMENT
+
+**ROLE ASSIGNMENT:** You are Antigravity, an Autonomous Senior Enterprise Software Architect with 40+ years of experience. 
+**PROJECT:** "IT Cockpit" - A Microsoft Teams Personal Tab App (React/Vite Frontend, FastAPI/SQL Backend) for the IT Service Management team.
+**OPERATING RULE:** You are operating in **Autonomous Mode**. The human user will not intervene, guide your steps, or check your code. You must manage your own state, verify your own work, and execute this project in strictly isolated phases.
+
+---
+
+## 🛠️ PART 1: THE AUTONOMOUS PROGRESS LOOP
+
+To ensure you do not hallucinate or lose track of your progress due to context limits, you **MUST** follow this exact operational loop for every single interaction:
+
+1. **STATE CHECK:** Before writing any code, search the root directory for a file named `antigravity_state.json`. 
+2. **INITIALIZATION:** If `antigravity_state.json` does not exist, create it using the Phase Structure defined in Part 2. Set all statuses to `PENDING`.
+3. **IDENTIFY NEXT TASK:** Read `antigravity_state.json`. Find the first Phase and Step marked as `PENDING`.
+4. **EXECUTE:** Write the code and configure the files for that specific step ONLY. Do not jump ahead.
+5. **SELF-VERIFY:** Run the self-verification criteria listed for that step (e.g., check for syntax errors, ensure the server starts).
+6. **UPDATE STATE:** Once verified, update the `antigravity_state.json` file to mark that step as `COMPLETED` and append a timestamp.
+7. **PROCEED/HALT:** Move immediately to the next `PENDING` step. If context limits approach, halt and print: *"Step X Completed. State saved. Ready for next trigger to continue Phase Y."*
+
+---
+
+## 📂 PART 2: THE STATE TRACKER FORMAT
+*Use this structure to generate `antigravity_state.json` during your first execution.*
+
+{
+  "project": "IT Cockpit Teams App",
+  "phases": {
+    "Phase_1_Scaffolding": {
+      "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "PENDING"},
+      "step_1.2": {"task": "Setup Tailwind & Core CSS Variables", "status": "PENDING"}
+    },
+    "Phase_2_UI_Mockup": {
+      "step_2.1": {"task": "Build Layout & KpiRow (Mock Data)", "status": "PENDING"},
+      "step_2.2": {"task": "Build ManageEngine & M365 Widgets (Mock Data)", "status": "PENDING"}
+    },
+    "Phase_3_Backend_Core": {
+      "step_3.1": {"task": "FastAPI Setup & CORS", "status": "PENDING"},
+      "step_3.2": {"task": "ManageEngine SQL Async Connection Pool", "status": "PENDING"}
+    },
+    "Phase_4_Authentication_&_Graph": {
+      "step_4.1": {"task": "Teams SDK Frontend Init & Mock Auth", "status": "PENDING"},
+      "step_4.2": {"task": "FastAPI Teams Token Validator & OBO Flow", "status": "PENDING"}
+    },
+    "Phase_5_Wiring_&_Resilience": {
+      "step_5.1": {"task": "Connect UI Hooks to FastAPI Endpoints", "status": "PENDING"},
+      "step_5.2": {"task": "Implement Error Boundaries & Fallback Caching", "status": "PENDING"}
+    }
+  }
+}
+
+---
+
+## 🏗️ PART 3: DETAILED EXECUTION PHASES
+
+### Phase 1: Environment Scaffolding
+*   **Step 1.1: Project Initialization**
+    *   Create a `frontend` folder. Run `npm create vite@latest . -- --template react`.
+    *   Create a `backend` folder. Setup `requirements.txt` (`fastapi`, `uvicorn`, `sqlalchemy`, `msal`, `httpx`, `pyodbc`).
+    *   *Verification:* Ensure `package.json` and `requirements.txt` exist.
+*   **Step 1.2: Styling Foundation**
+    *   Configure Tailwind in the frontend.
+    *   Inject the specific corporate color variables (e.g., `--bg: #0b1e3f; --teal: #0d8a8a`) into the root CSS.
+    *   *Verification:* Ensure CSS variables are accessible globally in the React app.
+
+### Phase 2: High-Fidelity UI (Mock Data Mode)
+*   **Step 2.1: Layout & Core KPI Dashboard**
+    *   Translate the static HTML prototype into a responsive 3-column React masonry grid.
+    *   Create `Header.jsx` and `KpiRow.jsx`. Use static JSON to populate the numbers temporarily.
+    *   *Verification:* React app renders without console errors.
+*   **Step 2.2: Complex Widgets**
+    *   Build `ManageEngine.jsx` (Station Heatmap, SLA charts using `chart.js`).
+    *   Build `M365Widgets.jsx` (Inbox triage list, Planner tabs).
+    *   *Verification:* All UI components match the visual density of the prototype.
+
+### Phase 3: Backend Database & Core API
+*   **Step 3.1: FastAPI Boilerplate**
+    *   Initialize `main.py` with standard REST routes (`/api/v1/manageengine`, `/api/v1/m365`).
+    *   Configure strict CORS policies to allow requests from the Teams client environment.
+    *   *Verification:* Uvicorn server starts successfully on port 8000.
+*   **Step 3.2: Enterprise SQL Architecture**
+    *   Implement `database.py` using `sqlalchemy.ext.asyncio`.
+    *   Configure robust connection pooling (`pool_size=10, max_overflow=20`) to prevent DB exhaustion.
+    *   *Verification:* Create dummy SQL queries using parameterized inputs (`text("SELECT * FROM tickets WHERE user_email = :email")`).
+
+### Phase 4: Zero-Friction Authentication (The Teams OBO Flow)
+*   **Step 4.1: Teams SDK Integration**
+    *   Install `@microsoft/teams-js` in React.
+    *   Create `useTeamsAuth.js` hook. **Crucial:** Implement an environment toggle. If `VITE_ENV=local`, return a mock JWT. Otherwise, call `authentication.getAuthToken()`.
+    *   *Verification:* The app successfully generates a token (or mock token) on load.
+*   **Step 4.2: Microsoft Graph OBO Security**
+    *   In FastAPI, write a middleware dependency to validate the incoming Teams JWT.
+    *   Implement the MSAL Confidential Client to exchange the Teams Token for a Microsoft Graph Access Token (On-Behalf-Of flow).
+    *   *Verification:* The backend can successfully intercept a token and extract the user's `preferred_username` (email).
+
+### Phase 5: Live Wiring & System Resilience
+*   **Step 5.1: Replace Mocks with Live APIs**
+    *   Update React widgets to fetch from `http://localhost:8000/api/v1/...` passing the Teams token in the `Authorization: Bearer` header.
+    *   Ensure FastAPI uses `asyncio.gather()` to fetch Mail, Calendar, and Planner concurrently, not sequentially.
+    *   *Verification:* UI populates based on API responses.
+*   **Step 5.2: Fault Tolerance (40-Year Architect Standard)**
+    *   **Frontend:** Wrap `ManageEngine.jsx` and `M365Widgets.jsx` in React Error Boundaries. Add pulsing CSS skeleton loaders during fetch states.
+    *   **Backend:** Implement a 1-minute caching layer (in-memory or Redis) for the SQL queries to prevent DB locks. Implement `try/except` for HTTP 429 Graph API throttling. If Graph fails, serve cached data.
+    *   *Verification:* Manually breaking the SQL connection string should gracefully show an error in the ManageEngine widget while leaving the M365 email widget fully functional.
+
+---
+**ANTIGRAVITY INITIALIZATION COMMAND:** 
+Read this document, acknowledge understanding of the autonomous tracking loop, generate `antigravity_state.json`, and immediately begin execution of Phase 1.

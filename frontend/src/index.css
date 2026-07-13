@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+/* ============================================
+   CORPORATE COLOR SYSTEM — Air India SATS IT
+   ============================================ */
+:root {
+  --bg:          #0b1e3f;   /* Deep navy — primary background */
+  --bg-2:        #0e2347;   /* Slightly lighter navy */
+  --card:        #112240;   /* Card/panel background */
+  --card-hover:  #162d55;   /* Card hover state */
+  --border:      #1e3a6e;   /* Subtle borders */
+  --teal:        #0d8a8a;   /* Corporate teal accent */
+  --teal-light:  #0fb3b3;   /* Teal lighter variant */
+  --accent:      #64ffda;   /* Highlight / success */
+  --accent-dim:  rgba(100, 255, 218, 0.12); /* Accent with low opacity */
+  --red:         #ff4d6d;   /* Alert / breach */
+  --red-dim:     rgba(255, 77, 109, 0.15);
+  --amber:       #ffb830;   /* Warning */
+  --amber-dim:   rgba(255, 184, 48, 0.15);
+  --text:        #f8fafc;   /* Primary text */
+  --text-dim:    #cbd5e1;   /* Muted text */
+  --text-faint:  #94a3b8;   /* Very muted */
+  --ink:         #f8fafc;
+  --muted:       #cbd5e1;
+  --glass:       rgba(17, 34, 64, 0.8); /* Glassmorphism */
+  --shadow:      0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(13, 138, 138, 0.3);
+}
+
+/* ============================================
+   BASE RESET & GLOBALS
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--teal); }
+
+/* ============================================
+   CARD / GLASS PANEL
+   ============================================ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--teal) 0%, transparent 50%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card:hover::before { opacity: 1; }
+.card:hover {
+  background: var(--card-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+/* ============================================
+   SKELETON LOADER
+   ============================================ */
+.skeleton {
+  background: linear-gradient(90deg, var(--card) 25%, var(--card-hover) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   PULSE INDICATOR
+   ============================================ */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  position: relative;
+  display: inline-block;
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%   { opacity: 1; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(2);   }
+}
+
+/* ============================================
+   ANIMATED GRADIENT BACKGROUND
+   ============================================ */
+.bg-gradient-animated {
+  background: 
+    radial-gradient(ellipse at 20% 50%, rgba(13, 138, 138, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(100, 255, 218, 0.04) 0%, transparent 50%),
+    var(--bg);
+}
+
+/* ============================================
+   STATUS BADGES
+   ============================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.badge-green  { background: rgba(100,255,218,0.12); color: var(--accent); border: 1px solid rgba(100,255,218,0.3); }
+.badge-red    { background: var(--red-dim);          color: var(--red);    border: 1px solid rgba(255,77,109,0.3); }
+.badge-amber  { background: var(--amber-dim);        color: var(--amber);  border: 1px solid rgba(255,184,48,0.3); }
+.badge-teal   { background: rgba(13,138,138,0.15);   color: var(--teal-light); border: 1px solid rgba(13,138,138,0.4); }
+
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--teal-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   CHART OVERRIDES
+   ============================================ */
+canvas { max-width: 100% !important; }
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1);   }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+.stagger-2 { animation-delay: 0.10s; opacity: 0; }
+.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+.stagger-4 { animation-delay: 0.20s; opacity: 0; }
+.stagger-5 { animation-delay: 0.25s; opacity: 0; }
+.stagger-6 { animation-delay: 0.30s; opacity: 0; }
