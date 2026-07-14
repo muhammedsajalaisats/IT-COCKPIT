@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 
 // ── Copilot Studio iframe URL ─────────────────────────────────────────────────
 const COPILOT_SRC =
-  'https://copilotstudio.microsoft.com/environments/Default-34465b8c-2359-4706-8187-a581c53d6bf2/bots/cre53_TechnologySupport/canvas?__version__=2&enableFileAttachment=true'
+  'https://copilotstudio.microsoft.com/environments/Default-34465b8c-2359-4706-8187-a581c53d6bf2/bots/cre53_TechnologySupport/webchat?__version__=2%22'
 
 // ── Copilot-style "AI rings" SVG icon ────────────────────────────────────────
 function CopilotIcon({ size = 28, color = 'white' }) {
