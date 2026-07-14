@@ -205,3 +205,26 @@ canvas { max-width: 100% !important; }
 .stagger-4 { animation-delay: 0.20s; opacity: 0; }
 .stagger-5 { animation-delay: 0.25s; opacity: 0; }
 .stagger-6 { animation-delay: 0.30s; opacity: 0; }
+
+/* ============================================
+   CHATBOT WIDGET ANIMATIONS
+   ============================================ */
+
+/* FAB gentle breathing glow */
+@keyframes fab-breathe {
+  0%, 100% { box-shadow: 0 6px 28px rgba(13,138,138,0.55), 0 2px 8px rgba(0,0,0,0.4); }
+  50%       { box-shadow: 0 6px 36px rgba(13,138,138,0.85), 0 2px 16px rgba(0,0,0,0.5), 0 0 0 6px rgba(13,138,138,0.12); }
+}
+
+/* Notification badge ping */
+@keyframes fab-ping {
+  0%        { transform: scale(1);   opacity: 1; }
+  70%, 100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Iframe loading spinner */
+@keyframes chatbot-spin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+

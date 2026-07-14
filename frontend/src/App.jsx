@@ -3,6 +3,7 @@ import Header from './components/Header'
 import KpiRow from './components/KpiRow'
 import ManageEngine from './components/ManageEngine'
 import M365Widgets from './components/M365Widgets'
+import ChatbotWidget from './components/ChatbotWidget'
 
 export default function App() {
   const [lastRefresh, setLastRefresh] = useState(new Date())
@@ -56,6 +57,9 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* ── Global Chatbot FAB — fixed position, persists across all views ── */}
+      <ChatbotWidget />
     </div>
   )
 }

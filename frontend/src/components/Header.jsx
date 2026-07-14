@@ -44,17 +44,17 @@ export default function Header({ lastRefresh, onRefresh }) {
             boxShadow: '0 0 16px rgba(13,138,138,0.5)',
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-              <path d="M7 8h3M7 11h3M14 8h3M14 11h3"/>
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+              <path d="M7 8h3M7 11h3M14 8h3M14 11h3" />
             </svg>
           </div>
           <div>
             <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
-              IT Cockpit
+              ME Cockpit
             </h1>
             <p style={{ fontSize: '11px', color: 'var(--text-dim)', letterSpacing: '0.3px' }}>
-              Air India SATS — ITSM Dashboard
+              Air India SATS
             </p>
           </div>
         </div>
@@ -92,8 +92,8 @@ export default function Header({ lastRefresh, onRefresh }) {
             onMouseOut={e => e.currentTarget.style.background = 'var(--accent-dim)'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
             </svg>
             Refresh
           </button>

@@ -1,9 +1,11 @@
 """
 routers/m365.py
 
-Microsoft 365 endpoints (Exchange Mail, Planner, Calendar).
-Phase 4 will add real Graph API calls via the OBO flow.
-Phase 5 will wire these to the frontend.
+Microsoft 365 endpoints (Exchange Mail, Planner Tasks, Calendar).
+
+Phase 4.2: get_current_user dependency now wired to all protected routes.
+            Routes receive the validated user dict (email, name, graph token).
+Phase 5   : Replace mock data with live Graph API calls using user["token"].
 """
 
 import asyncio
@@ -11,18 +13,23 @@ import time
 from functools import wraps
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends
+
+from auth.teams_validator import get_current_user
 
 router = APIRouter()
-bearer_scheme = HTTPBearer(auto_error=False)
 
-# ── In-memory cache ───────────────────────────────────────────────────────────
+# ── In-memory cache (1-minute TTL) ───────────────────────────────────────────
 _cache: dict[str, tuple[float, Any]] = {}
 CACHE_TTL = 60
 
 
 def cached(key: str, ttl: int = CACHE_TTL):
+    """
+    Simple in-memory cache decorator for async endpoints.
+    Returns cached data with a `from_cache: True` flag when hitting cache.
+    Phase 5 will extend this with per-user cache keys.
+    """
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -38,7 +45,7 @@ def cached(key: str, ttl: int = CACHE_TTL):
     return decorator
 
 
-# ── Mock data ─────────────────────────────────────────────────────────────────
+# ── Mock data (Phase 5 will replace with live Graph API calls) ────────────────
 MOCK_EMAILS = [
     {"id": "1", "from": "Ops Control",   "subject": "Flight delay impacting IT at DEL T3",       "time": "09:42", "unread": True,  "priority": "high"},
     {"id": "2", "from": "Azure Monitor", "subject": "[ALERT] CPU spike on AISATS-PROD-01 > 90%", "time": "09:18", "unread": True,  "priority": "high"},
@@ -67,68 +74,77 @@ MOCK_CALENDAR = [
 ]
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+# ── Endpoints (all protected by get_current_user) ─────────────────────────────
 
 @router.get("/mail", summary="Get inbox triage emails")
 @cached("m365_mail")
-async def get_mail(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+async def get_mail(user: dict = Depends(get_current_user)):
     """
-    Phase 4+: Will use Graph API:
+    Returns the top priority emails for the authenticated user.
+
+    Phase 5 Graph API call:
       GET https://graph.microsoft.com/v1.0/me/messages
         ?$select=subject,from,receivedDateTime,isRead
         &$top=20&$orderby=receivedDateTime desc
+      Authorization: Bearer {user["token"]}
     """
-    return {"source": "mock", "from_cache": False, "data": MOCK_EMAILS}
+    return {"source": "mock", "from_cache": False, "user": user["email"], "data": MOCK_EMAILS}
 
 
 @router.get("/tasks/mine", summary="Get my Planner tasks")
 @cached("m365_tasks_mine")
-async def get_my_tasks(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+async def get_my_tasks(user: dict = Depends(get_current_user)):
     """
-    Phase 4+: Will use Graph API:
+    Phase 5 Graph API call:
       GET https://graph.microsoft.com/v1.0/me/planner/tasks
         ?$filter=completedDateTime eq null
+      Authorization: Bearer {user["token"]}
     """
-    return {"source": "mock", "from_cache": False, "data": MOCK_TASKS_MINE}
+    return {"source": "mock", "from_cache": False, "user": user["email"], "data": MOCK_TASKS_MINE}
 
 
 @router.get("/tasks/team", summary="Get team Planner tasks")
 @cached("m365_tasks_team")
-async def get_team_tasks(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
-    return {"source": "mock", "from_cache": False, "data": MOCK_TASKS_TEAM}
+async def get_team_tasks(user: dict = Depends(get_current_user)):
+    return {"source": "mock", "from_cache": False, "user": user["email"], "data": MOCK_TASKS_TEAM}
 
 
 @router.get("/calendar", summary="Get upcoming calendar events")
 @cached("m365_calendar")
-async def get_calendar(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+async def get_calendar(user: dict = Depends(get_current_user)):
     """
-    Phase 4+: Will use Graph API:
+    Phase 5 Graph API call:
       GET https://graph.microsoft.com/v1.0/me/calendarView
         ?startDateTime=...&endDateTime=...
         &$select=subject,start,end,bodyPreview
+      Authorization: Bearer {user["token"]}
     """
-    return {"source": "mock", "from_cache": False, "data": MOCK_CALENDAR}
+    return {"source": "mock", "from_cache": False, "user": user["email"], "data": MOCK_CALENDAR}
 
 
 @router.get("/all", summary="Get all M365 data concurrently")
-async def get_all(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+async def get_all(user: dict = Depends(get_current_user)):
     """
     Fetches mail, tasks, and calendar concurrently using asyncio.gather.
-    Gracefully handles Graph API throttling (HTTP 429) in Phase 5.
+    Individual failures are caught and return a graceful error payload.
+    Phase 5 will replace mocks with live Graph API calls.
     """
     mail, my_tasks, team_tasks, calendar = await asyncio.gather(
-        get_mail(credentials),
-        get_my_tasks(credentials),
-        get_team_tasks(credentials),
-        get_calendar(credentials),
+        get_mail(user),
+        get_my_tasks(user),
+        get_team_tasks(user),
+        get_calendar(user),
         return_exceptions=True,
     )
 
     def safe(result, fallback):
-        return result if not isinstance(result, Exception) else {"error": str(result), "data": fallback}
+        if isinstance(result, Exception):
+            return {"error": str(result), "data": fallback}
+        return result
 
     return {
-        "source": "mock",
+        "source":     "mock",
+        "user":       user["email"],
         "mail":       safe(mail,       [])["data"],
         "my_tasks":   safe(my_tasks,   [])["data"],
         "team_tasks": safe(team_tasks, [])["data"],
