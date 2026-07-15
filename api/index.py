@@ -1,8 +1,12 @@
 import sys
 import os
 
-# Append the absolute path of the backend directory so internal imports inside main.py resolve correctly
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+# Ensure the root of the project is added to sys.path so backend.main can be resolved
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, root_path)
+
+# Ensure the backend folder is added to sys.path so internal imports inside backend.main resolve correctly
+backend_path = os.path.join(root_path, "backend")
 sys.path.insert(0, backend_path)
 
-from main import app
+from backend.main import app

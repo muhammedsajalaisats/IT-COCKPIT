@@ -1,6 +1,6 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-15T12:41:05+05:30",
+  "last_updated": "2026-07-15T12:51:20+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
       "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
@@ -69,8 +69,8 @@
       "step_5.10": {
         "task": "Production Readiness & Version Control",
         "status": "COMPLETED",
-        "completed": "2026-07-15T12:41:05+05:30",
-        "note": "Completed deployment prep, repository cleanups, and Vercel serverless configurations: (1) Added gunicorn to requirements.txt for production. (2) Created DEPLOYMENT_ENV_VARS.md guide detailing settings for Vercel and Railway/Render. (3) Added a root .gitignore file to exclude local secrets and Python caches, and untracked them from Git index. (4) Created vercel.json mapping all api routes to api/index.py under @vercel/python builder. (5) Created api/index.py entrypoint adding backend folder to sys.path to allow serverless execution. (6) Created root requirements.txt for Vercel builder dependency installs. (7) Created root README.md detailing step-by-step monorepo deployment steps on Vercel. (8) Verified CORS configuration and successfully pushed all updates to main branch."
+        "completed": "2026-07-15T12:51:20+05:30",
+        "note": "Completed deployment prep, repository cleanups, and Vercel serverless configurations: (1) Added gunicorn to requirements.txt for production. (2) Created DEPLOYMENT_ENV_VARS.md guide detailing settings for Vercel and Railway/Render. (3) Added a root .gitignore file to exclude local secrets and Python caches, and untracked them from Git index. (4) Created vercel.json mapping all api routes to api/index.py under @vercel/python builder. (5) Bridged FastAPI app resolution by writing api/index.py to import app directly from backend.main (via 'from backend.main import app') and inserted root/backend paths into sys.path. (6) Created backend/__init__.py as a package marker for Python's module importer. (7) Created root requirements.txt for Vercel builder dependency installs. (8) Created root README.md detailing step-by-step monorepo deployment steps on Vercel. (9) Verified CORS configuration and successfully pushed all updates to main branch."
       }
     },
     "Phase_6_Features": {
