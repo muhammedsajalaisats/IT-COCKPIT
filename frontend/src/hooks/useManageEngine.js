@@ -45,7 +45,7 @@ export function useManageEngine(token, authMode) {
       setData(result)
       setBackendDown(false)
     } catch (err) {
-      console.error('[useManageEngine] fetch failed:', err.message)
+      console.error("[useManageEngine] Fetch Error:", err)
       setError(err.message)
       // Signal to App.jsx that the backend proxy returned 503 BACKEND_UNAVAILABLE
       setBackendDown(err.code === 'BACKEND_UNAVAILABLE')

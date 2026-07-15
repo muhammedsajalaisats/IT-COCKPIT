@@ -11,7 +11,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 const RETRY_INTERVAL_MS = 4000
-const HEALTH_URL        = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000') + '/api/health'
+const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const HEALTH_URL = rawBase.replace(/\/$/, '') + '/api/health'
 
 export default function ServerConnecting({ onConnected }) {
   const [countdown,    setCountdown   ] = useState(RETRY_INTERVAL_MS / 1000)

@@ -219,10 +219,14 @@ export function useTeamsAuth() {
 
           try {
             console.info('[useTeamsAuth] Found cached account. Attempting acquireTokenSilent.')
-            const silentResult = await msal.acquireTokenSilent({
+            const silentPromise = msal.acquireTokenSilent({
               scopes:  GRAPH_SCOPES,
               account,
             })
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Silent token acquisition timed out')), 5000)
+            )
+            const silentResult = await Promise.race([silentPromise, timeoutPromise])
 
             setToken(silentResult.accessToken)
             setAuthMode('msal-direct')
@@ -233,9 +237,9 @@ export function useTeamsAuth() {
             setLoading(false)
             return
           } catch (silentErr) {
-            console.info(
-              '[useTeamsAuth] Silent token acquisition failed — prompting redirect login.',
-              silentErr?.errorCode || silentErr?.message
+            console.error(
+              '[useTeamsAuth] Silent token acquisition failed — prompting redirect login:',
+              silentErr
             )
           }
         }
@@ -272,10 +276,15 @@ export function useTeamsAuth() {
         msal.setActiveAccount(account)
         try {
           console.info('[useTeamsAuth] Active account found. Attempting silent acquisition.')
-          const silentResult = await msal.acquireTokenSilent({
+          const silentPromise = msal.acquireTokenSilent({
             scopes: GRAPH_SCOPES,
             account,
           })
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Silent token acquisition timed out')), 5000)
+          )
+          const silentResult = await Promise.race([silentPromise, timeoutPromise])
+
           setToken(silentResult.accessToken)
           setAuthMode('msal-direct')
           setUser({
@@ -286,7 +295,7 @@ export function useTeamsAuth() {
           setLoading(false)
           return
         } catch (silentErr) {
-          console.info('[useTeamsAuth] Silent acquisition failed, redirecting...', silentErr?.message)
+          console.error('[useTeamsAuth] Silent acquisition failed, redirecting...', silentErr)
         }
       }
 

@@ -45,7 +45,7 @@ export function useM365(token, authMode) {
       console.log('M365 API Response:', result)
       setData(result)
     } catch (err) {
-      console.error('[useM365] fetch failed:', err.message)
+      console.error("[useM365] Fetch Error:", err)
       setError(err.message)
     } finally {
       setLoading(false)
