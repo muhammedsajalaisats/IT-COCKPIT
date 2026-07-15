@@ -1,6 +1,13 @@
+/**
+ * Header.jsx
+ *
+ * Sticky top bar. Shows live clock, refresh state, and triggers data refetch.
+ * lastRefreshedAt is the ISO timestamp from the API response (generated_at).
+ */
+
 import { useState, useEffect } from 'react'
 
-export default function Header({ lastRefresh, onRefresh }) {
+export default function Header({ onRefresh, isLoading = false, lastRefreshedAt = null }) {
   const [time, setTime] = useState(new Date())
 
   useEffect(() => {
@@ -8,12 +15,16 @@ export default function Header({ lastRefresh, onRefresh }) {
     return () => clearInterval(t)
   }, [])
 
-  const fmt = (d) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const fmt     = (d) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const fmtDate = (d) => d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  const sinceRefresh = Math.floor((time - lastRefresh) / 1000)
-  const sinceText = sinceRefresh < 60
-    ? `${sinceRefresh}s ago`
-    : `${Math.floor(sinceRefresh / 60)}m ago`
+
+  // Show how long ago the data was generated (from the API timestamp)
+  let sinceText = 'Never'
+  if (lastRefreshedAt) {
+    const last = new Date(lastRefreshedAt)
+    const secs = Math.max(0, Math.floor((time - last) / 1000))
+    sinceText  = secs < 60 ? `${secs}s ago` : `${Math.floor(secs / 60)}m ago`
+  }
 
   return (
     <header style={{
@@ -36,7 +47,6 @@ export default function Header({ lastRefresh, onRefresh }) {
       }}>
         {/* Left: Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-          {/* Logo mark */}
           <div style={{
             width: 38, height: 38, borderRadius: '10px', flexShrink: 0,
             background: 'linear-gradient(135deg, var(--teal) 0%, var(--accent) 100%)',
@@ -51,7 +61,7 @@ export default function Header({ lastRefresh, onRefresh }) {
           </div>
           <div>
             <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
-              ME Cockpit
+              IT Cockpit
             </h1>
             <p style={{ fontSize: '11px', color: 'var(--text-dim)', letterSpacing: '0.3px' }}>
               Air India SATS
@@ -61,13 +71,17 @@ export default function Header({ lastRefresh, onRefresh }) {
 
         {/* Center: Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="pulse-dot" />
-          <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>Live</span>
+          <span className="pulse-dot" style={{ background: isLoading ? 'var(--amber)' : undefined }} />
+          <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+            {isLoading ? 'Loading…' : 'Live'}
+          </span>
           <span style={{ fontSize: '12px', color: 'var(--text-faint)' }}>·</span>
-          <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>Refreshed {sinceText}</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+            {isLoading ? 'Fetching data' : `Refreshed ${sinceText}`}
+          </span>
         </div>
 
-        {/* Right: Time + Refresh */}
+        {/* Right: Time + Refresh + Avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
@@ -81,21 +95,27 @@ export default function Header({ lastRefresh, onRefresh }) {
           <button
             id="btn-refresh"
             onClick={onRefresh}
+            disabled={isLoading}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              background: 'var(--accent-dim)', border: '1px solid rgba(100,255,218,0.3)',
-              color: 'var(--accent)', borderRadius: '8px',
-              padding: '7px 14px', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
-              transition: 'all 0.2s ease',
+              background: isLoading ? 'rgba(100,255,218,0.05)' : 'var(--accent-dim)',
+              border: '1px solid rgba(100,255,218,0.3)',
+              color: isLoading ? 'var(--text-faint)' : 'var(--accent)',
+              borderRadius: '8px', padding: '7px 14px', cursor: isLoading ? 'not-allowed' : 'pointer',
+              fontSize: '13px', fontWeight: 500, transition: 'all 0.2s ease',
             }}
-            onMouseOver={e => e.currentTarget.style.background = 'rgba(100,255,218,0.2)'}
-            onMouseOut={e => e.currentTarget.style.background = 'var(--accent-dim)'}
+            onMouseOver={e => { if (!isLoading) e.currentTarget.style.background = 'rgba(100,255,218,0.2)' }}
+            onMouseOut={e => { if (!isLoading) e.currentTarget.style.background = 'var(--accent-dim)' }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+              style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }}
+            >
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
             </svg>
-            Refresh
+            {isLoading ? 'Loading…' : 'Refresh'}
           </button>
 
           {/* Avatar */}

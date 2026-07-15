@@ -1,0 +1,17 @@
+# Node dependencies
+node_modules/
+
+# Python virtual environment and bytecode
+venv/
+__pycache__/
+*.pyc
+
+# Local environment configuration secrets
+.env
+.env.local
+.env.production
+.env.development
+
+# Production builds
+dist/
+build/

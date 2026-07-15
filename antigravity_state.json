@@ -1,6 +1,6 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-14T09:54:54+05:30",
+  "last_updated": "2026-07-15T12:14:44+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
       "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
@@ -19,15 +19,60 @@
       "step_4.2": {"task": "FastAPI Teams Token Validator & OBO Flow", "status": "COMPLETED", "completed": "2026-07-14T09:38:23+05:30", "note": "JWKS-based JWT validation + MSAL OBO exchange implemented. get_current_user dependency wired into all routes. /api/v1/me verified 200 OK."}
     },
     "Phase_5_Wiring_&_Resilience": {
-      "step_5.1": {"task": "Connect UI Hooks to FastAPI Endpoints", "status": "PENDING"},
-      "step_5.2": {"task": "Implement Error Boundaries & Fallback Caching", "status": "PENDING"}
+      "step_5.1": {
+        "task": "Live Microsoft Graph API Integration (M365 Backend)",
+        "status": "COMPLETED",
+        "completed": "2026-07-14T17:21:34+05:30",
+        "note": "Full M365 live Graph integration: .env populated with Azure credentials; CORS tightened with Vercel origin + PATCH/If-Match; routers/m365.py rewritten with live Graph helpers, per-user cache (m365:{oid}:{section}), graceful section-level errors, PATCH task endpoint with ETag/409 handling; manageengine.py /all updated to full contract shape."
+      },
+      "step_5.2": {
+        "task": "Connect UI Hooks to Live FastAPI Endpoints (Frontend Wiring)",
+        "status": "COMPLETED",
+        "completed": "2026-07-14T17:32:27+05:30",
+        "note": "Created src/lib/apiClient.js, hooks/useM365.js, hooks/useManageEngine.js. Rewired App.jsx, M365Widgets, ManageEngine, KpiRow, Header to consume live data. Fixed backend from_cache bug. Build: 183 modules, 0 errors."
+      },
+      "step_5.3": {
+        "task": "Fix HTTP 502 Errors & Environment Routing",
+        "status": "COMPLETED",
+        "completed": "2026-07-14T17:46:25+05:30",
+        "note": "Root cause: (1) FastAPI backend was NOT running — Vite proxy had nothing to forward to, returning 502; (2) Multiple stale Vite dev servers (PIDs on 3000/3001/3002) caused the frontend to land on port 3002 where the wrong proxy was active. Fixes: (a) Created frontend/.env (VITE_API_BASE_URL= empty, VITE_ENV=local for proxy-based local dev); (b) Created frontend/.env.production (VITE_API_BASE_URL=https://it-cockpit-api.up.railway.app for Vercel build); (c) vite.config.js rewritten with strictPort:true (prevents silent port shifting to 3002) and proxy error handler returning 503 JSON instead of 502; (d) backend/main.py CORS updated: hardcoded Vercel URL https://it-cockpit-frontend.vercel.app, added localhost:3001/3002 defensively, de-duplicated origins list; (e) Killed stale Vite processes on ports 3001/3002; (f) Started FastAPI on port 8000. Verification: /health=200 ok, /api/v1/me=200, /api/v1/manageengine/all=200, /api/v1/m365/all=200. Vite proxy → localhost:8000 → 200 confirmed."
+      },
+      "step_5.4": {
+        "task": "ManageEngine SQL Database Wiring",
+        "status": "PENDING",
+        "note": "Replace mock data in manageengine.py with live parameterized SQL queries via SQLAlchemy asyncio. Requires production DATABASE_URL and confirmed table/column schema."
+      },
+      "step_5.5": {
+        "task": "Developer Experience: Combined Start Script & Proxy Hardening",
+        "status": "COMPLETED",
+        "completed": "2026-07-15T09:33:00+05:30",
+        "note": "Installed concurrently@10. Added npm run dev:all to root package.json — launches Uvicorn (BACKEND, blue) and Vite (FRONTEND, green) concurrently with --kill-others-on-fail. Added proxyTimeout:3000 and req.socket.destroy() to vite.config.js proxy error handler to suppress AggregateError unhandled rejections. EPIPE/ECONNRESET errors silenced; only ECONNREFUSED prints a clean ⚠️ warning."
+      },
+      "step_5.7": {
+        "task": "Definitive AggregateError Fix & Graceful ServerConnecting Overlay",
+        "status": "COMPLETED",
+        "completed": "2026-07-15T09:49:00+05:30",
+        "note": "Two-part fix: (1) vite.config.js — added proxy.removeAllListeners('error') before registering our handler. Vite registers its own internal error listener on the http-proxy instance that re-prints the AggregateError stacktrace regardless of the user-defined handler; removing all listeners first gives us sole ownership and silences Vite's own log line. (2) Graceful UI fallback — created ServerConnecting.jsx overlay (pulsing animated spinner + countdown + 'npm run dev:all' hint) that renders when useManageEngine.backendDown=true. The overlay polls /health every 4 s using setInterval and auto-dismisses by calling handleConnected() → refresh() once the backend responds. useManageEngine hook updated to expose backendDown boolean (true when err.code==='BACKEND_UNAVAILABLE'). App.jsx updated to import ServerConnecting and conditionally render it. No page refresh required for recovery."
+      },
+      "step_5.8": {
+        "task": "MSAL Browser Login Fallback for Local Dev Outside Teams",
+        "status": "COMPLETED",
+        "completed": "2026-07-15T10:04:00+05:30",
+        "note": "Implemented full MSAL browser authentication fallback. Installed @azure/msal-browser + @azure/msal-react in frontend. Created src/lib/msalConfig.js (VITE_AZURE_CLIENT_ID/TENANT_ID, Graph scopes: Mail.Read/Tasks.Read/Calendars.Read/User.Read). Rewrote useTeamsAuth.js: (1) tries Teams SDK first; (2) if SDK fails/not in Teams, initialises PublicClientApplication singleton, tries acquireTokenSilent from cache, otherwise sets needsMsalLogin=true; (3) msalLogin() callback triggers loginPopup({scopes:GRAPH_SCOPES}). Created MsalLoginScreen.jsx — premium sign-in page with animated rings, Microsoft four-square logo button, spinner during popup, inline error display. Created src/lib/msalConfig.js. App.jsx updated: calls useTeamsAuth() directly to access needsMsalLogin/msalLogin; shows auth-init spinner, MsalLoginScreen gate, then dashboard. apiClient.js updated: apiFetch() accepts authMode param and sets X-Auth-Mode header. useManageEngine/useM365 pass authMode through. Backend: teams_validator.py get_current_user now accepts Request param; new Path 2 — when APP_ENV=local + X-Auth-Mode:msal-direct, decodes JWT without sig verification, extracts real claims, uses token as pass-through Graph token (live M365 data). main.py CORS updated to allow X-Auth-Mode header. frontend/.env updated with VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID."
+      },
+      "step_5.9": {
+        "task": "MSAL Redirect-Only Flow Pivot, Direct Local Tokens & Logging",
+        "status": "COMPLETED",
+        "completed": "2026-07-15T12:14:44+05:30",
+        "note": "Fully pivoted MSAL browser fallback flow to Redirect-Only with direct local tokens and debug logging support: (1) Removed loginPopup and popup blocker catch blocks entirely to prevent block_nested_popups. (2) Set onClick handler to execute loginRedirect(). (3) Enhanced getMsalInitPromise() and init() useEffect to handle Redirect response, extract accessToken, set active account, and support silent token loads. (4) Updated teams_validator.py to check for APP_ENV=local and bypass OBO entirely. Decodes token claims via best-effort jwt.decode; if token is opaque/encrypted, falls back to generic claims but still passes token directly to Graph. (5) Served hardcoded premium M365 and ManageEngine mock responses if a mock token is detected. (6) Setup uvicorn logger to print detailed statuses and response texts for Graph GET/PATCH calls. (7) Refactored useM365 and useManageEngine hooks to accept token and authMode as arguments from App.jsx, resolving a critical React hook state-isolation bug where multiple useTeamsAuth() instantiations failed to share state. (8) Added verbose console.log statements inside hooks to expose backend payloads, and verified all builds compile with zero errors."
+      }
     },
     "Phase_6_Features": {
       "step_6.1": {
         "task": "Copilot Studio Chatbot FAB Widget",
         "status": "COMPLETED",
         "completed": "2026-07-14T09:54:54+05:30",
-        "note": "ChatbotWidget.jsx created with: (1) Circular teal FAB button with Copilot-style AI rings SVG icon and breathing glow animation; (2) 380x600px animated chat window with slide-up + scale transition; (3) Copilot Studio iframe embedded filling 100% of window; (4) Header with 'AI Assistant' title, online status indicator, and X close button; (5) Loading skeleton spinner while iframe bootstraps; (6) Notification ping badge on FAB; (7) Global placement in App.jsx at root level. Build: 25 modules, 0 errors."
+        "note": "ChatbotWidget.jsx created with FAB button, animated chat window, Copilot Studio iframe. Build: 25 modules, 0 errors."
       }
     }
   }

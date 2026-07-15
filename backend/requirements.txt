@@ -7,3 +7,5 @@ msal
 httpx
 python-jose[cryptography]
 python-dotenv
+tzdata
+gunicorn

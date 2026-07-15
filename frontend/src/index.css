@@ -228,3 +228,9 @@ canvas { max-width: 100% !important; }
   to   { transform: rotate(360deg); }
 }
 
+/* Generic spin — used by Refresh button loading state */
+@keyframes spin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+

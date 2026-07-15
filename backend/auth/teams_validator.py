@@ -16,6 +16,8 @@ Production flow:
 Local dev mode:
   - APP_ENV=local → entire validation is bypassed; a mock user dict is returned
     so developers can work without a real Azure AD App Registration.
+  - The frontend sends "local_mock_token" as the Bearer value.
+    Any token starting with "local_" is accepted as a recognised sentinel.
 
 Verification criterion (Step 4.2):
   The backend can successfully intercept a token and extract the user's
@@ -28,7 +30,7 @@ import time
 import httpx
 
 from jose import jwt, JWTError, ExpiredSignatureError
-from fastapi import HTTPException, Security, status
+from fastapi import HTTPException, Request, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 
@@ -58,6 +60,14 @@ _jwks_cache: dict = {}
 _jwks_fetched_at: float = 0.0
 _JWKS_TTL: int = 3600  # refresh every hour
 
+# ── Local dev sentinel token prefix ──────────────────────────────────────────
+# The frontend sends "local_mock_token" in local dev mode.  Any token that
+# starts with this prefix is recognised as a local dev sentinel and bypasses
+# MSAL validation when APP_ENV=local.
+_LOCAL_TOKEN_PREFIX = "local_"
+# Legacy mock token from earlier useTeamsAuth versions — also accepted.
+_LEGACY_MOCK_TOKEN  = "mock-jwt-token-for-local-dev"
+
 
 async def _get_jwks() -> dict:
     """Return cached JWKS, refreshing if stale."""
@@ -78,10 +88,24 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # ── Public dependency ─────────────────────────────────────────────────────────
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Security(bearer_scheme),
 ) -> dict:
     """
     FastAPI dependency — validates the incoming Bearer token.
+
+    Token paths:
+      1. APP_ENV=local + no token / "local_" prefix sentinel:
+         → Return hardcoded mock user (zero network calls). Fast local testing.
+
+      2. APP_ENV=local + X-Auth-Mode: msal-direct (real Entra ID token):
+         → Decode JWT without signature verification (local trust boundary).
+         → Extract real user claims (email, name, oid) from the token.
+         → Use the token directly as a Graph access token (no OBO exchange).
+         → This gives live M365 data in the local browser.
+
+      3. Production (APP_ENV != local):
+         → Full JWKS signature validation + OBO exchange.
 
     Returns:
         {
@@ -96,35 +120,97 @@ async def get_current_user(
         HTTP 401 — missing, expired, or invalid token
         HTTP 403 — token audience / issuer mismatch
     """
-    # ── Local dev passthrough ─────────────────────────────────────────────────
-    if IS_LOCAL:
+    try:
+        is_local  = os.getenv("APP_ENV", "local") == "local"
+        auth_mode = request.headers.get("X-Auth-Mode", "")
+        token_str = credentials.credentials if credentials else ""
+
+        # ── Path 1: Local mock sentinel ───────────────────────────────────────
+        # Quick bypass for local iteration without any browser login.
+        if is_local and (
+            not token_str 
+            or token_str.startswith(_LOCAL_TOKEN_PREFIX) 
+            or token_str in ("mock-graph-token", _LEGACY_MOCK_TOKEN)
+        ):
+            return {
+                "email":        "it.admin@airsats.com",
+                "name":         "IT Admin (Local Dev)",
+                "token":        "mock-graph-token",
+                "oid":          "00000000-0000-0000-0000-000000000000",
+                "is_local_dev": True,
+            }
+
+        # ── Path 2: MSAL direct pass-through (local browser login) ───────────
+        # If is_local is set, we assume any incoming token (that isn't a mock sentinel)
+        # is already a valid Graph access token. We bypass OBO exchange entirely.
+        if is_local and token_str:
+            email = "local.user@airsats.com"
+            name = "Local User"
+            oid = "00000000-0000-0000-0000-000000000000"
+            try:
+                # Best-effort decode of claims without signature/expiry validation.
+                # If the token is opaque to us (common for some Graph access tokens),
+                # we fall back to generic claims but still use the token.
+                claims = jwt.decode(
+                    token_str,
+                    key="",
+                    options={
+                        "verify_signature": False,
+                        "verify_aud":       False,
+                        "verify_exp":       False,
+                    },
+                    algorithms=["RS256"],
+                )
+                email = (
+                    claims.get("preferred_username")
+                    or claims.get("unique_name")
+                    or claims.get("upn")
+                    or claims.get("email")
+                    or email
+                )
+                name = claims.get("name", email.split("@")[0] if email else name)
+                oid = claims.get("oid", oid)
+            except Exception as exc:
+                # Log warning but do not fail; the token is passed directly to Graph.
+                print(f"[useTeamsAuth Backend] Opaque/non-JWT token received. Using best-effort fallback. Error: {exc}")
+
+            return {
+                "email":        email,
+                "name":         name,
+                "token":        token_str,   # pass-through: already a Graph token
+                "oid":          oid,
+                "is_local_dev": True,
+            }
+
+        # ── Path 3: Production — full JWKS + OBO ─────────────────────────────
+        if not credentials:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header missing or malformed",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        teams_token = credentials.credentials
+        claims      = await _validate_teams_token(teams_token)
+        graph_token = await _obo_exchange(teams_token)
+
         return {
-            "email":        "it.admin@airsats.com",
-            "name":         "IT Admin (Local Dev)",
-            "token":        "mock-graph-token",
-            "oid":          "00000000-0000-0000-0000-000000000000",
-            "is_local_dev": True,
+            "email":        claims.get("preferred_username") or claims.get("upn", ""),
+            "name":         claims.get("name", ""),
+            "token":        graph_token,
+            "oid":          claims.get("oid", ""),
+            "is_local_dev": False,
         }
 
-    # ── Production: require token ─────────────────────────────────────────────
-    if not credentials:
+    except HTTPException:
+        raise
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header missing or malformed",
+            detail=f"Authentication failed: {type(exc).__name__}: {exc}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    teams_token = credentials.credentials
-    claims = await _validate_teams_token(teams_token)
-    graph_token = await _obo_exchange(teams_token)
-
-    return {
-        "email":        claims.get("preferred_username") or claims.get("upn", ""),
-        "name":         claims.get("name", ""),
-        "token":        graph_token,
-        "oid":          claims.get("oid", ""),
-        "is_local_dev": False,
-    }
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

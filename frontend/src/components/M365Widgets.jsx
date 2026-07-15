@@ -1,38 +1,53 @@
+/**
+ * M365Widgets.jsx
+ *
+ * Microsoft 365 panel — Inbox, My Tasks, Team Tasks, Calendar.
+ *
+ * Accepts live data as props from App.jsx (via useM365 hook).
+ * Falls back to an empty-state message when data is unavailable.
+ * Task checkboxes call onPatchTask() to persist state via Planner.
+ */
+
 import { useState } from 'react'
 
-/* ── Mock Data ─────────────────────────────── */
-const MOCK_EMAILS = [
-  { id: 1, from: 'Ops Control', subject: 'Flight delay impacting IT services at DEL T3', time: '9:42 AM', unread: true, priority: 'high' },
-  { id: 2, from: 'Azure Monitor', subject: '[ALERT] CPU spike on AISATS-PROD-01 > 90%', time: '9:18 AM', unread: true, priority: 'high' },
-  { id: 3, from: 'Nilesh Kumar', subject: 'Re: VPN access for new joiners — BOM team', time: '8:55 AM', unread: true, priority: 'normal' },
-  { id: 4, from: 'ServiceDesk', subject: 'Ticket #4821 escalated to L3 — please review', time: '8:30 AM', unread: false, priority: 'normal' },
-  { id: 5, from: 'HR Systems', subject: 'Onboarding IT checklist — 5 new staff joining Monday', time: 'Yesterday', unread: false, priority: 'low' },
-]
+/* ── Helpers ────────────────────────────────────────────────────────────────── */
 
-const MOCK_TASKS = {
-  mine: [
-    { id: 1, title: 'Renew SSL cert for aisats-internal.com', due: 'Today', priority: 'high', done: false },
-    { id: 2, title: 'Review firewall rules for BOM DMZ segment', due: 'Jul 15', priority: 'normal', done: false },
-    { id: 3, title: 'Update CMDB entries for new hardware batch', due: 'Jul 17', priority: 'low', done: true },
-    { id: 4, title: 'DR drill — tabletop exercise prep', due: 'Jul 20', priority: 'normal', done: false },
-  ],
-  team: [
-    { id: 5, title: 'Deploy Teams Rooms firmware update', due: 'Jul 14', priority: 'high', done: false },
-    { id: 6, title: 'Complete ISO 27001 gap assessment', due: 'Jul 22', priority: 'high', done: false },
-    { id: 7, title: 'Migrate legacy backup to Azure Vault', due: 'Jul 31', priority: 'normal', done: false },
-  ],
+/** Format an ISO 8601 date string into a human-readable label */
+function fmtDate(isoString) {
+  if (!isoString) return ''
+  const d    = new Date(isoString)
+  const now  = new Date()
+  const todayStr    = now.toDateString()
+  const tomorrowStr = new Date(now.getTime() + 86_400_000).toDateString()
+  if (d.toDateString() === todayStr)    return 'Today'
+  if (d.toDateString() === tomorrowStr) return 'Tomorrow'
+  return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
 }
 
-const MOCK_UPCOMING = [
-  { title: 'Server Maintenance Window', time: '02:00 – 04:00 AM', day: 'Tomorrow', type: 'maintenance' },
-  { title: 'IT Steering Committee', time: '10:30 AM', day: 'Monday', type: 'meeting' },
-  { title: 'Azure Subscription Renewal', time: 'All Day', day: 'Jul 18', type: 'deadline' },
-]
+/** Format received_at / start_at for display */
+function fmtTime(isoString) {
+  if (!isoString) return ''
+  const d = new Date(isoString)
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+}
 
-/* ── Sub-components ─────────────────────────── */
-function EmailList() {
+const priorityColor = (p) =>
+  p === 'high' || p === 'urgent' ? 'var(--red)'
+  : p === 'normal'               ? 'var(--amber)'
+  :                                'var(--text-faint)'
+
+/* ── Email list ─────────────────────────────────────────────────────────────── */
+function EmailList({ emails }) {
   const [selected, setSelected] = useState(null)
-  const unreadCount = MOCK_EMAILS.filter(e => e.unread).length
+  const unreadCount = emails.filter(e => e.unread).length
+
+  if (!emails.length) {
+    return (
+      <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-faint)', fontSize: '13px' }}>
+        No messages to show
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -50,16 +65,21 @@ function EmailList() {
         )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {MOCK_EMAILS.map(email => (
-          <div
+        {emails.map(email => (
+          <a
             key={email.id}
-            onClick={() => setSelected(selected === email.id ? null : email.id)}
+            href={email.web_url || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => { if (!email.web_url) { e.preventDefault(); setSelected(selected === email.id ? null : email.id) } }}
             style={{
+              display: 'block',
               padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
               background: email.unread ? 'rgba(13,138,138,0.08)' : 'rgba(17,34,64,0.4)',
               border: `1px solid ${email.unread ? 'rgba(13,138,138,0.25)' : 'rgba(30,58,110,0.3)'}`,
               transition: 'all 0.2s ease',
               borderLeft: email.priority === 'high' ? '3px solid var(--red)' : `3px solid transparent`,
+              textDecoration: 'none',
             }}
             onMouseOver={e => e.currentTarget.style.background = 'var(--card-hover)'}
             onMouseOut={e => e.currentTarget.style.background = email.unread ? 'rgba(13,138,138,0.08)' : 'rgba(17,34,64,0.4)'}
@@ -73,9 +93,11 @@ function EmailList() {
                   fontSize: '12px', fontWeight: email.unread ? 600 : 400,
                   color: email.unread ? 'var(--text)' : 'var(--text-dim)',
                   flexShrink: 0,
-                }}>{email.from}</span>
+                }}>{email.sender_name || email.from}</span>
               </div>
-              <span style={{ fontSize: '10px', color: 'var(--text-faint)', flexShrink: 0 }}>{email.time}</span>
+              <span style={{ fontSize: '10px', color: 'var(--text-faint)', flexShrink: 0 }}>
+                {fmtTime(email.received_at) || email.time}
+              </span>
             </div>
             <div style={{
               fontSize: '12px', color: 'var(--text-dim)',
@@ -83,40 +105,46 @@ function EmailList() {
             }}>
               {email.subject}
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </div>
   )
 }
 
-function TaskList({ tasks }) {
-  const [items, setItems] = useState(tasks)
-  const toggle = (id) => setItems(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
-
-  const priorityColor = (p) => p === 'high' ? 'var(--red)' : p === 'normal' ? 'var(--amber)' : 'var(--text-faint)'
+/* ── Task list ──────────────────────────────────────────────────────────────── */
+function TaskList({ tasks, onToggle }) {
+  if (!tasks.length) {
+    return (
+      <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-faint)', fontSize: '13px' }}>
+        No tasks to show
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {items.map(task => (
-        <div key={task.id} style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-          background: 'rgba(17,34,64,0.4)', borderRadius: 10, cursor: 'pointer',
-          border: '1px solid rgba(30,58,110,0.3)',
-          opacity: task.done ? 0.5 : 1, transition: 'all 0.2s ease',
-        }}
+      {tasks.map(task => (
+        <div
+          key={task.id}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+            background: 'rgba(17,34,64,0.4)', borderRadius: 10, cursor: 'pointer',
+            border: '1px solid rgba(30,58,110,0.3)',
+            opacity: task.completed || task.done ? 0.5 : 1, transition: 'all 0.2s ease',
+          }}
           onMouseOver={e => e.currentTarget.style.background = 'var(--card-hover)'}
           onMouseOut={e => e.currentTarget.style.background = 'rgba(17,34,64,0.4)'}
-          onClick={() => toggle(task.id)}
+          onClick={() => onToggle && onToggle(task)}
         >
           {/* Checkbox */}
           <div style={{
             width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-            border: `2px solid ${task.done ? 'var(--accent)' : priorityColor(task.priority)}`,
-            background: task.done ? 'var(--accent)' : 'transparent',
+            border: `2px solid ${(task.completed || task.done) ? 'var(--accent)' : priorityColor(task.priority)}`,
+            background: (task.completed || task.done) ? 'var(--accent)' : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
           }}>
-            {task.done && (
+            {(task.completed || task.done) && (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="3.5" strokeLinecap="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
@@ -124,56 +152,109 @@ function TaskList({ tasks }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: '12px', color: 'var(--text)', textDecoration: task.done ? 'line-through' : 'none',
+              fontSize: '12px', color: 'var(--text)',
+              textDecoration: (task.completed || task.done) ? 'line-through' : 'none',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{task.title}</div>
           </div>
           <span style={{
-            fontSize: '10px', color: task.due === 'Today' ? 'var(--red)' : 'var(--text-faint)',
-            fontWeight: task.due === 'Today' ? 600 : 400, flexShrink: 0,
-          }}>{task.due}</span>
+            fontSize: '10px',
+            color: (task.due_at && fmtDate(task.due_at) === 'Today') || task.due === 'Today' ? 'var(--red)' : 'var(--text-faint)',
+            fontWeight: (task.due_at && fmtDate(task.due_at) === 'Today') || task.due === 'Today' ? 600 : 400,
+            flexShrink: 0,
+          }}>
+            {task.due_at ? fmtDate(task.due_at) : task.due}
+          </span>
         </div>
       ))}
     </div>
   )
 }
 
-function CalendarList() {
+/* ── Calendar list ──────────────────────────────────────────────────────────── */
+function CalendarList({ events }) {
   const typeColor = (t) => t === 'maintenance' ? 'var(--amber)' : t === 'meeting' ? 'var(--teal-light)' : 'var(--red)'
-  const typeIcon = (t) => {
-    if (t === 'maintenance') return '🔧'
-    if (t === 'meeting') return '📅'
-    return '⏰'
+  const typeIcon  = (t) => t === 'maintenance' ? '🔧' : t === 'meeting' ? '📅' : '⏰'
+
+  if (!events.length) {
+    return (
+      <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-faint)', fontSize: '13px' }}>
+        No upcoming events
+      </div>
+    )
   }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {MOCK_UPCOMING.map((e, i) => (
-        <div key={i} style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '10px 12px', borderRadius: 10,
-          background: 'rgba(17,34,64,0.4)', border: '1px solid rgba(30,58,110,0.3)',
-          borderLeft: `3px solid ${typeColor(e.type)}`,
-        }}>
-          <span style={{ fontSize: '18px', flexShrink: 0 }}>{typeIcon(e.type)}</span>
+      {events.map((ev, i) => (
+        <a
+          key={ev.id || i}
+          href={ev.web_url || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '10px 12px', borderRadius: 10,
+            background: 'rgba(17,34,64,0.4)', border: '1px solid rgba(30,58,110,0.3)',
+            borderLeft: `3px solid ${typeColor(ev.type)}`,
+            textDecoration: 'none',
+            transition: 'background 0.2s',
+          }}
+          onMouseOver={e => e.currentTarget.style.background = 'var(--card-hover)'}
+          onMouseOut={e => e.currentTarget.style.background = 'rgba(17,34,64,0.4)'}
+        >
+          <span style={{ fontSize: '18px', flexShrink: 0 }}>{typeIcon(ev.type)}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {e.title}
+              {ev.title || ev.subject}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: 1 }}>
-              {e.day} · {e.time}
+              {ev.start_at ? `${fmtDate(ev.start_at)} · ${fmtTime(ev.start_at)}` : `${ev.day} · ${ev.time}`}
             </div>
           </div>
+        </a>
+      ))}
+    </div>
+  )
+}
+
+/* ── Section error banner ───────────────────────────────────────────────────── */
+function SectionErrorBanner({ errors }) {
+  if (!errors?.length) return null
+  return (
+    <div style={{
+      background: 'rgba(255,184,48,0.08)', border: '1px solid rgba(255,184,48,0.25)',
+      borderRadius: 8, padding: '8px 12px', marginBottom: 8,
+    }}>
+      {errors.map((e, i) => (
+        <div key={i} style={{ fontSize: '11px', color: 'var(--amber)' }}>
+          ⚠ {e.section}: {e.message} {e.retryable ? '(will retry)' : ''}
         </div>
       ))}
     </div>
   )
 }
 
-/* ── Main Component ─────────────────────────── */
+/* ── Main Component ─────────────────────────────────────────────────────────── */
 const TABS = ['Inbox', 'My Tasks', 'Team Tasks', 'Calendar']
 
-export default function M365Widgets({ isLoading }) {
+export default function M365Widgets({
+  isLoading,
+  mail       = [],
+  myTasks    = [],
+  teamTasks  = [],
+  calendar   = [],
+  sectionErrors = [],
+  stale      = false,
+  error      = null,
+  onPatchTask,
+}) {
   const [activeTab, setActiveTab] = useState('Inbox')
+
+  const handleTaskToggle = (task, section) => {
+    if (!onPatchTask) return
+    onPatchTask(task.id, !(task.completed ?? task.done), task.etag ?? '', section)
+  }
 
   if (isLoading) {
     return (
@@ -211,8 +292,20 @@ export default function M365Widgets({ isLoading }) {
             <p style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Exchange · Planner · Calendar</p>
           </div>
         </div>
-        <span className="badge badge-teal">Mock Data</span>
+        <span className={`badge ${stale ? 'badge-amber' : 'badge-teal'}`}>
+          {error ? 'Error' : stale ? 'Partial' : 'Live'}
+        </span>
       </div>
+
+      {/* Fatal error */}
+      {error && (
+        <div style={{
+          background: 'rgba(255,77,109,0.08)', border: '1px solid rgba(255,77,109,0.25)',
+          borderRadius: 8, padding: '10px 14px', fontSize: '12px', color: 'var(--red)',
+        }}>
+          Could not connect to the backend: {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, background: 'rgba(11,30,63,0.6)', borderRadius: 10, padding: 4 }}>
@@ -237,10 +330,27 @@ export default function M365Widgets({ isLoading }) {
 
       {/* Tab content */}
       <div>
-        {activeTab === 'Inbox'      && <EmailList />}
-        {activeTab === 'My Tasks'   && <TaskList tasks={MOCK_TASKS.mine} />}
-        {activeTab === 'Team Tasks' && <TaskList tasks={MOCK_TASKS.team} />}
-        {activeTab === 'Calendar'   && <CalendarList />}
+        <SectionErrorBanner errors={sectionErrors.filter(e =>
+          (activeTab === 'Inbox'      && e.section === 'mail')      ||
+          (activeTab === 'My Tasks'   && e.section === 'my_tasks')  ||
+          (activeTab === 'Team Tasks' && e.section === 'team_tasks') ||
+          (activeTab === 'Calendar'   && e.section === 'calendar')
+        )} />
+
+        {activeTab === 'Inbox'      && <EmailList emails={mail} />}
+        {activeTab === 'My Tasks'   && (
+          <TaskList
+            tasks={myTasks}
+            onToggle={t => handleTaskToggle(t, 'my_tasks')}
+          />
+        )}
+        {activeTab === 'Team Tasks' && (
+          <TaskList
+            tasks={teamTasks}
+            onToggle={t => handleTaskToggle(t, 'team_tasks')}
+          />
+        )}
+        {activeTab === 'Calendar'   && <CalendarList events={calendar} />}
       </div>
     </div>
   )

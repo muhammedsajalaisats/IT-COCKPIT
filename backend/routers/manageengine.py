@@ -3,35 +3,43 @@ routers/manageengine.py
 
 ManageEngine ServiceDesk Plus endpoints.
 
-Phase 4.2: get_current_user dependency wired to KPI/station/category routes.
-            ManageEngine data is not user-scoped (shared IT ops data), so we
-            apply auth to ensure only authenticated users can access it.
-Phase 5   : Replace mock data with live parameterized SQL queries via
-            SQLAlchemy asyncio.
+Phase 4.2: get_current_user dependency wired to all protected routes.
+Phase 5  : /all endpoint now returns the full documented contract shape
+           (kpis, stations, categories, sla, summary) with response
+           metadata (source, generated_at, from_cache, stale).
+           SQL wiring is a future phase; data remains mock for now.
 
-All SQL queries use parameterized inputs to prevent injection attacks.
+All SQL queries in future phases must use parameterized inputs to prevent
+injection attacks. Do NOT construct SQL with request values via string
+interpolation.
 """
 
 import asyncio
 import time
+from datetime import datetime
 from functools import wraps
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 
-from database import get_db
 from auth.teams_validator import get_current_user
 
 router = APIRouter()
 
-# ── In-memory cache (1-minute TTL) ───────────────────────────────────────────
+IST      = ZoneInfo("Asia/Kolkata")
+CACHE_TTL = 60  # seconds — ManageEngine data is shared across IT users
+
+# ── In-memory cache (shared; ManageEngine data is org-wide for IT staff) ──────
 _cache: dict[str, tuple[float, Any]] = {}
-CACHE_TTL = 60  # seconds
 
 
-def cached(key: str, ttl: int = CACHE_TTL):
+def _now_ist() -> str:
+    """Return current time as ISO 8601 string in IST."""
+    return datetime.now(IST).isoformat(timespec="seconds")
+
+
+def _cached(key: str, ttl: int = CACHE_TTL):
     """Simple in-memory cache decorator for async functions."""
     def decorator(func):
         @wraps(func)
@@ -40,7 +48,7 @@ def cached(key: str, ttl: int = CACHE_TTL):
             if key in _cache:
                 ts, data = _cache[key]
                 if now - ts < ttl:
-                    return data
+                    return {**data, "from_cache": True}
             result = await func(*args, **kwargs)
             _cache[key] = (now, result)
             return result
@@ -48,110 +56,153 @@ def cached(key: str, ttl: int = CACHE_TTL):
     return decorator
 
 
-# ── Mock data (replaced by SQL in Phase 5) ────────────────────────────────────
-MOCK_KPIS = {
-    "total_tickets":            1248,
-    "open_tickets":             387,
-    "sla_breached":             23,
-    "resolved_today":           94,
-    "pending_approval":         56,
-    "avg_resolution_hours":     4.2,
-    "first_call_resolution_pct": 68,
-    "escalated":                31,
+# ── Mock data (Phase 6 will replace with live parameterized SQL) ───────────────
+
+_MOCK_KPIS = {
+    "total_tickets":    1248,
+    "open_tickets":     387,
+    "sla_breached":     23,
+    "resolved_today":   94,
+    "pending_approval": 56,
+    "changes_vs_yesterday": {
+        "total_tickets":    {"value": 12,  "unit": "percent"},
+        "open_tickets":     {"value": 8,   "unit": "count"},
+        "sla_breached":     {"value": -3,  "unit": "count"},
+        "resolved_today":   {"value": 18,  "unit": "percent"},
+        "pending_approval": {"value": -2,  "unit": "count"},
+    },
 }
 
-MOCK_STATIONS = [
-    {"name": "DEL T3", "tickets": 87, "sla_pct": 91},
-    {"name": "BOM",    "tickets": 64, "sla_pct": 88},
-    {"name": "MAA",    "tickets": 52, "sla_pct": 95},
-    {"name": "BLR",    "tickets": 41, "sla_pct": 97},
-    {"name": "HYD",    "tickets": 38, "sla_pct": 93},
-    {"name": "CCU",    "tickets": 29, "sla_pct": 82},
-    {"name": "GOI",    "tickets": 18, "sla_pct": 100},
-    {"name": "AMD",    "tickets": 15, "sla_pct": 99},
-    {"name": "COK",    "tickets": 12, "sla_pct": 100},
+_MOCK_STATIONS = [
+    {"code": "DEL", "open_tickets": 87, "sla_compliance_pct": 91.0},
+    {"code": "BOM", "open_tickets": 64, "sla_compliance_pct": 88.0},
+    {"code": "MAA", "open_tickets": 52, "sla_compliance_pct": 95.0},
+    {"code": "BLR", "open_tickets": 41, "sla_compliance_pct": 97.0},
+    {"code": "HYD", "open_tickets": 38, "sla_compliance_pct": 93.0},
+    {"code": "CCU", "open_tickets": 29, "sla_compliance_pct": 82.0},
+    {"code": "GOI", "open_tickets": 18, "sla_compliance_pct": 100.0},
+    {"code": "AMD", "open_tickets": 15, "sla_compliance_pct": 99.0},
+    {"code": "COK", "open_tickets": 12, "sla_compliance_pct": 100.0},
 ]
 
-MOCK_CATEGORIES = [
-    {"category": "Network",  "count": 92},
-    {"category": "Hardware", "count": 74},
-    {"category": "Software", "count": 61},
-    {"category": "Access",   "count": 55},
-    {"category": "Email",    "count": 48},
-    {"category": "Other",    "count": 27},
+_MOCK_CATEGORIES = [
+    {"category": "Network",  "open_tickets": 92},
+    {"category": "Hardware", "open_tickets": 74},
+    {"category": "Software", "open_tickets": 61},
+    {"category": "Access",   "open_tickets": 55},
+    {"category": "Email",    "open_tickets": 48},
+    {"category": "Other",    "open_tickets": 27},
 ]
 
+_MOCK_SLA = {
+    "met":      312,
+    "at_risk":  52,
+    "breached": 23,
+}
 
-# ── Endpoints (protected by get_current_user) ─────────────────────────────────
+_MOCK_SUMMARY = {
+    "avg_resolution_hours":     4.2,
+    "first_call_resolution_pct": 68.0,
+    "escalated_tickets":        31,
+}
+
+
+# ── Endpoints (all protected by get_current_user) ─────────────────────────────
 
 @router.get("/kpis", summary="Get KPI summary metrics")
-@cached("me_kpis")
+@_cached("me_kpis")
 async def get_kpis(user: dict = Depends(get_current_user)):
     """
     Returns top-level KPI counts for the IT dashboard.
 
-    Phase 5 SQL (parameterized):
+    Future SQL (parameterized):
       SELECT
         COUNT(*)                                              AS total_tickets,
-        SUM(CASE WHEN status != 'CLOSED' THEN 1 ELSE 0 END)  AS open_tickets,
-        SUM(CASE WHEN sla_violated = 1 THEN 1 ELSE 0 END)    AS sla_breached,
-        SUM(CASE WHEN DATE(resolved_at) = CURDATE() THEN 1 ELSE 0 END)
-                                                              AS resolved_today
+        SUM(CASE WHEN status NOT IN ('Closed','Resolved') THEN 1 ELSE 0 END) AS open_tickets,
+        SUM(CASE WHEN sla_violated = 1 AND status NOT IN ('Closed','Resolved') THEN 1 ELSE 0 END) AS sla_breached,
+        SUM(CASE WHEN CAST(resolved_at AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) AS resolved_today
       FROM tickets
-      -- No user-filter: KPIs are org-wide for IT ops staff.
+      -- KPIs are org-wide for IT ops staff (not user-scoped).
     """
-    return {"source": "mock", "data": MOCK_KPIS}
+    return {
+        "source":       "manageengine",
+        "generated_at": _now_ist(),
+        "from_cache":   False,
+        "stale":        False,
+        "data":         _MOCK_KPIS,
+    }
 
 
 @router.get("/stations", summary="Get per-station ticket heatmap")
-@cached("me_stations")
+@_cached("me_stations")
 async def get_stations(user: dict = Depends(get_current_user)):
     """
-    Returns ticket counts and SLA compliance per airport station.
+    Returns open ticket counts and SLA compliance per airport station.
 
-    Phase 5 SQL (parameterized):
-      SELECT station_code AS name,
-             COUNT(*)     AS tickets,
-             ROUND(100.0 * SUM(CASE WHEN sla_met = 1 THEN 1 ELSE 0 END)
-                   / COUNT(*), 1) AS sla_pct
+    Future SQL (parameterized):
+      SELECT station_code AS code,
+             COUNT(*)     AS open_tickets,
+             ROUND(100.0 * SUM(CASE WHEN sla_met = 1 THEN 1 ELSE 0 END) / COUNT(*), 1)
+                          AS sla_compliance_pct
       FROM tickets
-      WHERE status != 'CLOSED'
+      WHERE status NOT IN ('Closed', 'Resolved')
       GROUP BY station_code
-      ORDER BY tickets DESC
+      ORDER BY open_tickets DESC
     """
-    return {"source": "mock", "data": MOCK_STATIONS}
+    return {
+        "source":       "manageengine",
+        "generated_at": _now_ist(),
+        "from_cache":   False,
+        "stale":        False,
+        "data":         _MOCK_STATIONS,
+    }
 
 
 @router.get("/categories", summary="Get ticket breakdown by category")
-@cached("me_categories")
+@_cached("me_categories")
 async def get_categories(user: dict = Depends(get_current_user)):
     """
     Returns open ticket counts grouped by IT category.
 
-    Phase 5 SQL (parameterized):
-      SELECT category, COUNT(*) AS count
+    Future SQL (parameterized):
+      SELECT category, COUNT(*) AS open_tickets
       FROM   tickets
-      WHERE  status = 'OPEN'
+      WHERE  status NOT IN ('Closed', 'Resolved')
       GROUP  BY category
-      ORDER  BY count DESC
+      ORDER  BY open_tickets DESC
     """
-    return {"source": "mock", "data": MOCK_CATEGORIES}
+    return {
+        "source":       "manageengine",
+        "generated_at": _now_ist(),
+        "from_cache":   False,
+        "stale":        False,
+        "data":         _MOCK_CATEGORIES,
+    }
 
 
 @router.get("/all", summary="Get all ManageEngine data in one call")
 async def get_all(user: dict = Depends(get_current_user)):
     """
-    Aggregates KPIs, stations, and categories in a single call.
-    Uses asyncio.gather for concurrent sub-queries (Phase 5: live DB).
+    Aggregates KPIs, stations, categories, SLA summary, and metrics
+    in a single response matching the documented API contract.
+
+    Returns mock data for now; live SQL wiring is a future phase.
     """
-    kpis, stations, categories = await asyncio.gather(
-        get_kpis(user),
-        get_stations(user),
-        get_categories(user),
-    )
+    generated_at = _now_ist()
+
     return {
-        "source":     "mock",
-        "kpis":       kpis["data"],
-        "stations":   stations["data"],
-        "categories": categories["data"],
+        "source":       "manageengine",
+        "generated_at": generated_at,
+        "from_cache":   False,
+        "stale":        False,
+        # KPI cards
+        "kpis": _MOCK_KPIS,
+        # Station heatmap
+        "stations": _MOCK_STATIONS,
+        # Category breakdown chart
+        "categories": _MOCK_CATEGORIES,
+        # SLA donut chart
+        "sla": _MOCK_SLA,
+        # Summary metrics
+        "summary": _MOCK_SUMMARY,
     }
