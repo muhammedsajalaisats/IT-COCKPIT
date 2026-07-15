@@ -1,6 +1,6 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-15T12:14:44+05:30",
+  "last_updated": "2026-07-15T12:37:09+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
       "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
@@ -65,6 +65,12 @@
         "status": "COMPLETED",
         "completed": "2026-07-15T12:14:44+05:30",
         "note": "Fully pivoted MSAL browser fallback flow to Redirect-Only with direct local tokens and debug logging support: (1) Removed loginPopup and popup blocker catch blocks entirely to prevent block_nested_popups. (2) Set onClick handler to execute loginRedirect(). (3) Enhanced getMsalInitPromise() and init() useEffect to handle Redirect response, extract accessToken, set active account, and support silent token loads. (4) Updated teams_validator.py to check for APP_ENV=local and bypass OBO entirely. Decodes token claims via best-effort jwt.decode; if token is opaque/encrypted, falls back to generic claims but still passes token directly to Graph. (5) Served hardcoded premium M365 and ManageEngine mock responses if a mock token is detected. (6) Setup uvicorn logger to print detailed statuses and response texts for Graph GET/PATCH calls. (7) Refactored useM365 and useManageEngine hooks to accept token and authMode as arguments from App.jsx, resolving a critical React hook state-isolation bug where multiple useTeamsAuth() instantiations failed to share state. (8) Added verbose console.log statements inside hooks to expose backend payloads, and verified all builds compile with zero errors."
+      },
+      "step_5.10": {
+        "task": "Production Readiness & Version Control",
+        "status": "COMPLETED",
+        "completed": "2026-07-15T12:37:09+05:30",
+        "note": "Completed deployment prep and repository cleanups: (1) Added gunicorn to requirements.txt for robust ASGI serving in production. (2) Created DEPLOYMENT_ENV_VARS.md guide detailing environment variables and settings for Vercel and Railway/Render. (3) Added a root .gitignore file to exclude local secrets (.env files) and compiled Python cache folders. (4) Untracked previously cached local .env and pycache files from the Git index. (5) Verified production CORS configuration in main.py includes Vercel URL and localhost:5173. (6) Successfully staged, committed, and pushed all updates to GitHub remote origin branch main."
       }
     },
     "Phase_6_Features": {
