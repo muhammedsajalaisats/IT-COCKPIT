@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
 
-from auth.teams_validator import get_current_user
+from backend.auth.teams_validator import get_current_user
 
 router = APIRouter()
 

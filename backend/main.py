@@ -16,9 +16,9 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from routers import manageengine, m365
-from auth.teams_validator import get_current_user
-from database import check_db_connection
+from backend.routers import manageengine, m365
+from backend.auth.teams_validator import get_current_user
+from backend.database import check_db_connection
 
 load_dotenv()
 
@@ -131,7 +131,7 @@ async def get_me(user: dict = Depends(get_current_user)):
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
-@app.get("/health", tags=["Health"], summary="Health check")
+@app.get("/api/health", tags=["Health"], summary="Health check")
 async def health():
     """
     Public health endpoint. Does NOT disclose credentials, secrets,
@@ -150,6 +150,6 @@ async def root():
     return {
         "message": "IT Cockpit API is running",
         "docs":    "/docs",
-        "health":  "/health",
+        "health":  "/api/health",
         "me":      "/api/v1/me",
     }

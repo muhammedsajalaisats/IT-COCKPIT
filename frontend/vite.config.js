@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
           // All /api requests are forwarded to the FastAPI backend.
           // This avoids CORS issues during local development.
           '/api': {
-            target: 'http://localhost:8000',
+            target: 'http://127.0.0.1:8000',
             changeOrigin: true,
             // Bail out quickly (3 s) so the terminal isn't blocked when the
             // backend is down. Without a timeout, Vite can hang waiting for a
@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => {
                 const silentCodes = new Set(['EPIPE', 'ECONNRESET'])
                 if (!silentCodes.has(err.code)) {
                   console.warn(
-                    '\n[Vite Proxy] ⚠️  FastAPI not reachable on localhost:8000.' +
+                    '\n[Vite Proxy] ⚠️  FastAPI not reachable on 127.0.0.1:8000.' +
                     ' Start it with:\n' +
                     '   npm run dev:all          (runs both servers together)\n' +
                     '   — or —\n' +
@@ -74,7 +74,7 @@ export default defineConfig(({ mode }) => {
                   res.end(JSON.stringify({
                     error: {
                       code:      'BACKEND_UNAVAILABLE',
-                      message:   'FastAPI backend is not running on localhost:8000. Use `npm run dev:all` to start both servers.',
+                      message:   'FastAPI backend is not running on 127.0.0.1:8000. Use `npm run dev:all` to start both servers.',
                       retryable: true,
                     },
                   }))
