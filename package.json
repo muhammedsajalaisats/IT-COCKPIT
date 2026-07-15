@@ -9,7 +9,7 @@
     "dev": "npm run dev --prefix frontend",
     "build": "npm run build --prefix frontend",
     "preview": "npm run preview --prefix frontend",
-    "dev:backend": ".\\backend\\venv\\Scripts\\python.exe -m uvicorn backend.main:app --reload --port 8000",
+    "dev:backend": ".\\backend\\venv\\Scripts\\python.exe -m uvicorn main:app --app-dir backend --reload --port 8000",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:all": "concurrently --kill-others-on-fail --prefix-colors \"bgBlue.bold,bgGreen.bold\" --names \"BACKEND,FRONTEND\" \"npm run dev:backend\" \"npm run dev:frontend\""
   },
