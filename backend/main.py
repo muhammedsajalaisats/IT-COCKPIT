@@ -16,7 +16,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from backend.routers import manageengine, m365
+from backend.routers import m365
 from backend.auth.teams_validator import get_current_user
 from backend.database import check_db_connection
 
@@ -85,11 +85,6 @@ app.add_middleware(
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-app.include_router(
-    manageengine.router,
-    prefix="/api/v1/manageengine",
-    tags=["ManageEngine"],
-)
 app.include_router(
     m365.router,
     prefix="/api/v1/m365",

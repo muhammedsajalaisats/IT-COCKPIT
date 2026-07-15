@@ -23,35 +23,50 @@ export async function apiFetch(path, token, options = {}, authMode = null) {
   const url = `${API_BASE}${path}`
   console.log("Fetching from:", url)
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Accept':        'application/json',
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${token}`,
-      // Tell the backend how to process this token:
-      //   'teams'       → validate via JWKS + OBO exchange (production)
-      //   'msal-direct' → token is already a Graph token; use as pass-through
-      ...(authMode ? { 'X-Auth-Mode': authMode } : {}),
-      ...(options.headers ?? {}),
-    },
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-  if (!response.ok) {
-    let errorBody
-    try { errorBody = await response.json() } catch { errorBody = null }
-    const message =
-      errorBody?.error?.message ??
-      errorBody?.detail ??
-      `HTTP ${response.status}`
-    const err = new Error(message)
-    err.status = response.status
-    err.code   = errorBody?.error?.code ?? 'API_ERROR'
-    err.retryable = errorBody?.error?.retryable ?? false
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Accept':        'application/json',
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+        // Tell the backend how to process this token:
+        //   'teams'       → validate via JWKS + OBO exchange (production)
+        //   'msal-direct' → token is already a Graph token; use as pass-through
+        ...(authMode ? { 'X-Auth-Mode': authMode } : {}),
+        ...(options.headers ?? {}),
+      },
+    })
+
+    if (!response.ok) {
+      let errorBody
+      try { errorBody = await response.json() } catch { errorBody = null }
+      const message =
+        errorBody?.error?.message ??
+        errorBody?.detail ??
+        `HTTP ${response.status}`
+      const err = new Error(message)
+      err.status = response.status
+      err.code   = errorBody?.error?.code ?? 'API_ERROR'
+      err.retryable = errorBody?.error?.retryable ?? false
+      throw err
+    }
+
+    return response.json()
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      const timeoutErr = new Error("The backend server took too long to respond.")
+      timeoutErr.name = 'AbortError'
+      throw timeoutErr
+    }
     throw err
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  return response.json()
 }
 
 // ── Convenience methods ───────────────────────────────────────────────────────
@@ -64,10 +79,6 @@ export const api = {
   /** GET /api/v1/m365/all */
   getM365All: (token, authMode) =>
     apiFetch('/api/v1/m365/all', token, {}, authMode),
-
-  /** GET /api/v1/manageengine/all */
-  getManageEngineAll: (token, authMode) =>
-    apiFetch('/api/v1/manageengine/all', token, {}, authMode),
 
   /** PATCH /api/v1/m365/tasks/{taskId} */
   patchTask: (token, taskId, completed, etag, authMode) =>

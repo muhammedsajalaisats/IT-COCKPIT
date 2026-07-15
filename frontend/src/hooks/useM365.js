@@ -34,6 +34,7 @@ export function useM365(token, authMode) {
   const [data,    setData   ] = useState(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error,   setError  ] = useState(null)
+  const [backendDown, setBackendDown] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -45,9 +46,20 @@ export function useM365(token, authMode) {
       const result = await api.getM365All(token, authMode)
       console.log('M365 API Response:', result)
       setData(result)
+      setBackendDown(false)
     } catch (err) {
       console.error("[useM365] Fetch Error:", err)
-      setError(err.message || "Failed to fetch data")
+      if (err.name === 'AbortError') {
+        setError("The backend server took too long to respond.")
+      } else {
+        setError(err.message || "Failed to fetch data")
+      }
+      setBackendDown(
+        err.code === 'BACKEND_UNAVAILABLE' ||
+        err.name === 'AbortError' ||
+        err.message?.includes('Failed to fetch') ||
+        err.message?.includes('Load failed')
+      )
     } finally {
       setLoading(false)
     }
@@ -105,5 +117,5 @@ export function useM365(token, authMode) {
     }
   }, [token, authMode])
 
-  return { data, loading, error, refresh: fetchAll, patchTask }
+  return { data, loading, error, backendDown, refresh: fetchAll, patchTask }
 }
