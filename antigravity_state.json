@@ -1,6 +1,6 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-16T16:26:00+05:30",
+  "last_updated": "2026-07-15T16:32:00+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
       "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
@@ -75,8 +75,8 @@
       "step_5.11": {
         "task": "Vercel Production Alignment & Environment Sync",
         "status": "COMPLETED",
-        "completed": "2026-07-15T16:26:00+05:30",
-        "note": "Synchronized local environment and resolved Vercel 404/empty response routing issues: (1) Updated Vite proxy target in vite.config.js to 127.0.0.1:8000 to resolve Windows IPv6 localhost connection bugs; (2) Moved health check endpoint from /health to /api/health and updated frontend poller (ServerConnecting.jsx) to ensure requests route correctly through local Vite proxy and Vercel; (3) Refactored backend imports to absolute backend.* paths to avoid namespace collisions and crashes on serverless runtime; (4) Added base /api rewrite rule to vercel.json and later swapped rewrites with legacy routes directive for /api/(.*) mapping; (5) Set VITE_API_BASE_URL= empty in frontend/.env.production to enforce relative paths; (6) Unignored and committed .env.production; (7) Updated dev:backend script in root package.json to run python -m uvicorn backend.main:app from the root directory to support absolute backend.* imports locally."
+        "completed": "2026-07-15T16:32:00+05:30",
+        "note": "Synchronized local environment and resolved Vercel 404/empty response routing issues: (1) Updated Vite proxy target in vite.config.js to 127.0.0.1:8000 to resolve Windows IPv6 localhost connection bugs; (2) Moved health check endpoint from /health to /api/health and updated frontend poller (ServerConnecting.jsx) to ensure requests route correctly through local Vite proxy and Vercel; (3) Refactored backend imports to absolute backend.* paths to avoid namespace collisions and crashes on serverless runtime; (4) Configured vercel.json to use the exact rewrites structure mapping /api/(.*) to /api/index.py; (5) Set VITE_API_BASE_URL= empty in frontend/.env.production to enforce relative paths; (6) Unignored and committed .env.production; (7) Updated dev:backend script in root package.json to run python -m uvicorn backend.main:app from the root directory to support absolute backend.* imports locally."
       }
     },
     "Phase_6_Features": {
