@@ -80,6 +80,10 @@ export const api = {
   getM365All: (token, authMode) =>
     apiFetch('/api/v1/m365/all', token, {}, authMode),
 
+  /** GET /api/v1/manageengine/all */
+  getManageEngineAll: (token, authMode) =>
+    apiFetch('/api/v1/manageengine/all', token, {}, authMode),
+
   /** PATCH /api/v1/m365/tasks/{taskId} */
   patchTask: (token, taskId, completed, etag, authMode) =>
     apiFetch(`/api/v1/m365/tasks/${encodeURIComponent(taskId)}`, token, {

@@ -16,32 +16,38 @@
 
 import { useCallback } from 'react'
 import Header from './components/Header'
+import KpiRow from './components/KpiRow'
+import ManageEngine from './components/ManageEngine'
 import M365Widgets from './components/M365Widgets'
 import ChatbotWidget from './components/ChatbotWidget'
 import ServerConnecting from './components/ServerConnecting'
 import MsalLoginScreen from './components/MsalLoginScreen'
 import { useTeamsAuth } from './hooks/useTeamsAuth'
+import { useManageEngine } from './hooks/useManageEngine'
 import { useM365 } from './hooks/useM365'
 
 console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL)
 
 export default function App() {
   // ── Auth state ────────────────────────────────────────────────────────────
-  // useTeamsAuth is also called inside useM365.
+  // useTeamsAuth is also called inside useManageEngine / useM365.
   // The MSAL singleton + effect guard ensures the init runs only once;
   // subsequent calls read the cached state from React's hook ordering.
   const auth = useTeamsAuth()
+  const me = useManageEngine(auth.token, auth.authMode)
   const m365 = useM365(auth.token, auth.authMode)
 
   const handleRefresh = useCallback(() => {
+    me.refresh()
     m365.refresh()
-  }, [m365])
+  }, [me, m365])
 
-  const isLoading = m365.loading
+  const isLoading = me.loading || m365.loading
 
   const handleConnected = useCallback(() => {
+    me.refresh()
     m365.refresh()
-  }, [m365])
+  }, [me, m365])
 
   // ── Auth loading spinner ──────────────────────────────────────────────────
   // Show a minimal spinner while MSAL / Teams SDK is initialising.
@@ -85,7 +91,7 @@ export default function App() {
   return (
     <div className="bg-gradient-animated min-h-screen">
       {/* Full-screen "Connecting to server…" overlay — auto-dismissed on recovery */}
-      {m365.backendDown && (
+      {(me.backendDown || m365.backendDown) && (
         <ServerConnecting onConnected={handleConnected} />
       )}
 
@@ -101,14 +107,37 @@ export default function App() {
         <Header
           onRefresh={handleRefresh}
           isLoading={isLoading}
-          lastRefreshedAt={m365.data?.generated_at ?? null}
+          lastRefreshedAt={me.data?.generated_at ?? m365.data?.generated_at ?? null}
         />
 
         <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ marginTop: '24px' }}>
+          <div className="animate-fade-in-up stagger-1">
+            <KpiRow
+              isLoading={me.loading}
+              kpis={me.data?.kpis ?? null}
+            />
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 720px), 1fr))',
+            gap: '24px',
+            marginTop: '24px',
+          }}>
             <div className="animate-fade-in-up stagger-3">
+              <ManageEngine
+                isLoading={me.loading}
+                stations={me.data?.stations ?? []}
+                categories={me.data?.categories ?? []}
+                sla={me.data?.sla ?? null}
+                summary={me.data?.summary ?? null}
+                error={me.error}
+                stale={me.data?.stale ?? false}
+              />
+            </div>
+            <div className="animate-fade-in-up stagger-4">
               <M365Widgets
-                isLoading={isLoading}
+                isLoading={m365.loading}
                 mail={m365.data?.mail ?? []}
                 myTasks={m365.data?.my_tasks ?? []}
                 teamTasks={m365.data?.team_tasks ?? []}
