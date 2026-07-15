@@ -1,6 +1,6 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-15T12:37:09+05:30",
+  "last_updated": "2026-07-15T12:41:05+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
       "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
@@ -69,8 +69,8 @@
       "step_5.10": {
         "task": "Production Readiness & Version Control",
         "status": "COMPLETED",
-        "completed": "2026-07-15T12:37:09+05:30",
-        "note": "Completed deployment prep and repository cleanups: (1) Added gunicorn to requirements.txt for robust ASGI serving in production. (2) Created DEPLOYMENT_ENV_VARS.md guide detailing environment variables and settings for Vercel and Railway/Render. (3) Added a root .gitignore file to exclude local secrets (.env files) and compiled Python cache folders. (4) Untracked previously cached local .env and pycache files from the Git index. (5) Verified production CORS configuration in main.py includes Vercel URL and localhost:5173. (6) Successfully staged, committed, and pushed all updates to GitHub remote origin branch main."
+        "completed": "2026-07-15T12:41:05+05:30",
+        "note": "Completed deployment prep, repository cleanups, and Vercel serverless configurations: (1) Added gunicorn to requirements.txt for production. (2) Created DEPLOYMENT_ENV_VARS.md guide detailing settings for Vercel and Railway/Render. (3) Added a root .gitignore file to exclude local secrets and Python caches, and untracked them from Git index. (4) Created vercel.json mapping all api routes to api/index.py under @vercel/python builder. (5) Created api/index.py entrypoint adding backend folder to sys.path to allow serverless execution. (6) Created root requirements.txt for Vercel builder dependency installs. (7) Created root README.md detailing step-by-step monorepo deployment steps on Vercel. (8) Verified CORS configuration and successfully pushed all updates to main branch."
       }
     },
     "Phase_6_Features": {

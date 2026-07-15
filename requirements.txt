@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+aiosqlite
+aioodbc
+msal
+httpx
+python-jose[cryptography]
+python-dotenv
+tzdata
+gunicorn
