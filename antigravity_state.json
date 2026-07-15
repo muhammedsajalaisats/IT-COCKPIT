@@ -1,6 +1,6 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-15T16:53:00+05:30",
+  "last_updated": "2026-07-15T17:10:00+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
       "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
@@ -75,8 +75,8 @@
       "step_5.11": {
         "task": "Vercel Production Alignment & Environment Sync",
         "status": "COMPLETED",
-        "completed": "2026-07-15T16:53:00+05:30",
-        "note": "Decoupled frontend and backend architectures for independent hosting on Render.com (backend) and Vercel (frontend): (1) Removed Vercel serverless code (deleted root 'api' directory, api/index.py, and vercel.json); (2) Updated apiClient.js to construct absolute URLs utilizing VITE_API_BASE_URL with fallback to http://127.0.0.1:8000 for local dev, bypassing local proxy requirements; (3) Configured VITE_API_BASE_URL to point to Render production backend in frontend/.env.production; (4) Updated ALLOWED_ORIGINS in backend/main.py to include http://127.0.0.1:5173 loopback alongside other local/prod origins to avoid CORS issues on cross-origin requests; (5) Verified root requirements.txt is Render-ready (includes gunicorn/uvicorn); (6) Verified frontend builds successfully."
+        "completed": "2026-07-15T17:10:00+05:30",
+        "note": "Restored Vercel Serverless monorepo structure for combined React and FastAPI hosting: (1) Recreated root 'api/index.py' with path alignment exposing FastAPI app module; (2) Recreated root 'vercel.json' with rewrites mapping /api/(.*) to api/index.py; (3) Reverted apiClient.js to resolve relative URLs with empty base; (4) Reverted VITE_API_BASE_URL to be empty in frontend/.env.production to restore Vercel production relative path routing; (5) Verified local python modules resolve cleanly and React build compiles successfully."
       }
     },
     "Phase_6_Features": {
