@@ -40,6 +40,7 @@ ALLOWED_ORIGINS: list[str] = [
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:5173",  # Vite default port (fallback)
+    "http://127.0.0.1:5173",  # Vite default port (IPv4 loopback)
     # ── Microsoft Teams clients ───────────────────────────────────────────────
     # FastAPI CORSMiddleware does NOT support wildcard subdomains in allow_origins.
     # We list the known Teams origins explicitly.
