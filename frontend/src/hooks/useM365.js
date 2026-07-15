@@ -36,17 +36,18 @@ export function useM365(token, authMode) {
   const [error,   setError  ] = useState(null)
 
   const fetchAll = useCallback(async () => {
-    // Only execute if token is fully populated
-    if (!token) return
     setLoading(true)
     setError(null)
     try {
+      if (!token) {
+        throw new Error("No token provided for authentication")
+      }
       const result = await api.getM365All(token, authMode)
       console.log('M365 API Response:', result)
       setData(result)
     } catch (err) {
       console.error("[useM365] Fetch Error:", err)
-      setError(err.message)
+      setError(err.message || "Failed to fetch data")
     } finally {
       setLoading(false)
     }

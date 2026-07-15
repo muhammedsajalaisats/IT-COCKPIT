@@ -26,6 +26,8 @@ import { useTeamsAuth } from './hooks/useTeamsAuth'
 import { useManageEngine } from './hooks/useManageEngine'
 import { useM365 } from './hooks/useM365'
 
+console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL)
+
 export default function App() {
   // ── Auth state ────────────────────────────────────────────────────────────
   // useTeamsAuth is also called inside useManageEngine / useM365.

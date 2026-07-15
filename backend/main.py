@@ -23,7 +23,7 @@ from backend.database import check_db_connection
 load_dotenv()
 
 # ── CORS origins ──────────────────────────────────────────────────────────────
-_FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "https://it-cockpit-frontend.vercel.app")
+_FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "https://it-cockpit-frontend.vercel.app").rstrip("/")
 
 ALLOWED_ORIGINS: list[str] = [
     # ── Production ────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ app = FastAPI(
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[origin.rstrip("/") for origin in ALLOWED_ORIGINS],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "If-Match", "X-Auth-Mode"],

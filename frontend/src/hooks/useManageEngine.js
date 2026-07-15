@@ -35,18 +35,19 @@ export function useManageEngine(token, authMode) {
   const [backendDown, setBackendDown] = useState(false)
 
   const fetchAll = useCallback(async () => {
-    // Only execute if token is fully populated
-    if (!token) return
     setLoading(true)
     setError(null)
     try {
+      if (!token) {
+        throw new Error("No token provided for authentication")
+      }
       const result = await api.getManageEngineAll(token, authMode)
       console.log('ManageEngine API Response:', result)
       setData(result)
       setBackendDown(false)
     } catch (err) {
       console.error("[useManageEngine] Fetch Error:", err)
-      setError(err.message)
+      setError(err.message || "Failed to fetch data")
       // Signal to App.jsx that the backend proxy returned 503 BACKEND_UNAVAILABLE
       setBackendDown(err.code === 'BACKEND_UNAVAILABLE')
     } finally {

@@ -148,45 +148,43 @@ export function useTeamsAuth() {
     _authInitStarted = true
 
     async function init() {
-      // ────────────────────────────────────────────────────────────────────────
-      // PATH 1 — Teams SDK (inside Teams frame)
-      // ────────────────────────────────────────────────────────────────────────
+      setLoading(true)
       try {
-        const { app, authentication } = await import('@microsoft/teams-js')
-        await app.initialize()
+        // ────────────────────────────────────────────────────────────────────────
+        // PATH 1 — Teams SDK (inside Teams frame)
+        // ────────────────────────────────────────────────────────────────────────
+        try {
+          const { app, authentication } = await import('@microsoft/teams-js')
+          await app.initialize()
 
-        const context = await app.getContext()
-        const authToken = await authentication.getAuthToken()
+          const context = await app.getContext()
+          const authToken = await authentication.getAuthToken()
 
-        setToken(authToken)
-        setAuthMode('teams')
-        setUser({
-          email: context.user?.loginHint || context.user?.userPrincipalName || '',
-          name:  context.user?.displayName || 'IT User',
-        })
-        setLoading(false)
-        return
+          setToken(authToken)
+          setAuthMode('teams')
+          setUser({
+            email: context.user?.loginHint || context.user?.userPrincipalName || '',
+            name:  context.user?.displayName || 'IT User',
+          })
+          return
 
-      } catch (teamsErr) {
-        if (isExpectedTeamsError(teamsErr)) {
-          console.debug(
-            '[useTeamsAuth] Not inside Teams — falling back to MSAL browser redirect.',
-            `(suppressed: ${teamsErr?.message})`
-          )
-        } else {
-          console.info(
-            '[useTeamsAuth] Teams SDK unavailable. Switching to MSAL redirect.',
-            teamsErr?.message
-          )
+        } catch (teamsErr) {
+          if (isExpectedTeamsError(teamsErr)) {
+            console.debug(
+              '[useTeamsAuth] Not inside Teams — falling back to MSAL browser redirect.',
+              `(suppressed: ${teamsErr?.message})`
+            )
+          } else {
+            console.info(
+              '[useTeamsAuth] Teams SDK unavailable. Switching to MSAL redirect.',
+              teamsErr?.message
+            )
+          }
         }
-      }
 
-      // ────────────────────────────────────────────────────────────────────────
-      // PATH 2 — MSAL browser redirect (local dev / plain browser)
-      // ────────────────────────────────────────────────────────────────────────
-      try {
-        // Enforce isInitializing/isAuthenticating loading state on mount
-        setLoading(true)
+        // ────────────────────────────────────────────────────────────────────────
+        // PATH 2 — MSAL browser redirect (local dev / plain browser)
+        // ────────────────────────────────────────────────────────────────────────
         setNeedsMsalLogin(false)
 
         const redirectResult = await getMsalInitPromise()
@@ -207,7 +205,6 @@ export function useTeamsAuth() {
             email: redirectResult.account?.username || redirectResult.account?.idTokenClaims?.email || '',
             name:  redirectResult.account?.name     || redirectResult.account?.idTokenClaims?.name  || 'IT User',
           })
-          setLoading(false)
           return
         }
 
@@ -234,23 +231,24 @@ export function useTeamsAuth() {
               email: account.username || account.idTokenClaims?.email || '',
               name:  account.name     || account.idTokenClaims?.name  || 'IT User',
             })
-            setLoading(false)
             return
           } catch (silentErr) {
             console.error(
               '[useTeamsAuth] Silent token acquisition failed — prompting redirect login:',
               silentErr
             )
+            setNeedsMsalLogin(true)
           }
+        } else {
+          // Neither redirectResult nor silent login succeeded. Show redirect button.
+          setNeedsMsalLogin(true)
         }
-
-        // Neither redirectResult nor silent login succeeded. Show redirect button.
-        setNeedsMsalLogin(true)
-        setLoading(false)
 
       } catch (msalErr) {
         console.error('[useTeamsAuth] MSAL initialisation failed:', msalErr)
         setError(msalErr?.message || 'MSAL initialisation failed')
+        setNeedsMsalLogin(true)
+      } finally {
         setLoading(false)
       }
     }
@@ -292,7 +290,6 @@ export function useTeamsAuth() {
             name:  account.name     || account.idTokenClaims?.name  || 'IT User',
           })
           setNeedsMsalLogin(false)
-          setLoading(false)
           return
         } catch (silentErr) {
           console.error('[useTeamsAuth] Silent acquisition failed, redirecting...', silentErr)
@@ -308,6 +305,7 @@ export function useTeamsAuth() {
     } catch (err) {
       console.error('[useTeamsAuth] loginRedirect failed:', err)
       setError(err?.message || 'Redirect login failed')
+    } finally {
       setLoading(false)
     }
   }, [])

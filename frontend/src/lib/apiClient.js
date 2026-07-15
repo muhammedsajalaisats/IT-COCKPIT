@@ -21,6 +21,7 @@ const API_BASE = rawBase.replace(/\/$/, '')
  */
 export async function apiFetch(path, token, options = {}, authMode = null) {
   const url = `${API_BASE}${path}`
+  console.log("Fetching from:", url)
 
   const response = await fetch(url, {
     ...options,
