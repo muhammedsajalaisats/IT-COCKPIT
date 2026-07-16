@@ -460,6 +460,108 @@ async def _section(
 
 # ── Individual debug endpoints (still protected by get_current_user) ──────────
 
+@router.get("/me/messages", summary="Get inbox triage emails")
+async def get_me_messages(user: dict = Depends(get_current_user)):
+    """
+    Returns up to 5 inbox messages for the authenticated user.
+    Live Graph call: GET /me/messages
+    """
+    oid   = user["oid"]
+    token = user["token"]
+    if _is_mock_token(token):
+        return {
+            "source":       "mock_microsoft_graph",
+            "generated_at": _now_ist(),
+            "from_cache":   False,
+            "stale":        False,
+            "user":         user["email"],
+            "data":         _MOCK_MAIL,
+            "errors":       [],
+        }
+    from_cache = _cache_get(oid, "mail") is not None
+    data, error = await _section("mail", oid, _fetch_mail, token)
+    return {
+        "source":       "microsoft_graph",
+        "generated_at": _now_ist(),
+        "from_cache":   from_cache,
+        "stale":        bool(error),
+        "user":         user["email"],
+        "data":         data,
+        "errors":       [error] if error else [],
+    }
+
+
+@router.get("/me/calendarview", summary="Get upcoming calendar events")
+async def get_me_calendarview(user: dict = Depends(get_current_user)):
+    """
+    Returns up to 5 calendar events for the next 7 days.
+    Live Graph call: GET /me/calendarView
+    """
+    oid   = user["oid"]
+    token = user["token"]
+    if _is_mock_token(token):
+        return {
+            "source":       "mock_microsoft_graph",
+            "generated_at": _now_ist(),
+            "from_cache":   False,
+            "stale":        False,
+            "user":         user["email"],
+            "data":         _MOCK_CALENDAR,
+            "errors":       [],
+        }
+    data, error = await _section("calendar", oid, _fetch_calendar, token)
+    from_cache   = _cache_get(oid, "calendar") is not None
+    return {
+        "source":       "microsoft_graph",
+        "generated_at": _now_ist(),
+        "from_cache":   from_cache,
+        "stale":        bool(error),
+        "user":         user["email"],
+        "data":         data,
+        "errors":       [error] if error else [],
+    }
+
+
+@router.get("/me/events", summary="Get upcoming calendar events")
+async def get_me_events(user: dict = Depends(get_current_user)):
+    """
+    Returns up to 5 calendar events for the next 7 days.
+    Live Graph call: GET /me/calendarView
+    """
+    return await get_me_calendarview(user)
+
+
+@router.get("/me/planner/tasks", summary="Get my Planner tasks")
+async def get_me_planner_tasks(user: dict = Depends(get_current_user)):
+    """
+    Returns up to 10 personal Planner tasks for the authenticated user.
+    Live Graph call: GET /me/planner/tasks
+    """
+    oid   = user["oid"]
+    token = user["token"]
+    if _is_mock_token(token):
+        return {
+            "source":       "mock_microsoft_graph",
+            "generated_at": _now_ist(),
+            "from_cache":   False,
+            "stale":        False,
+            "user":         user["email"],
+            "data":         _MOCK_MY_TASKS,
+            "errors":       [],
+        }
+    from_cache = _cache_get(oid, "my_tasks") is not None
+    data, error = await _section("my_tasks", oid, _fetch_my_tasks, token)
+    return {
+        "source":       "microsoft_graph",
+        "generated_at": _now_ist(),
+        "from_cache":   from_cache,
+        "stale":        bool(error),
+        "user":         user["email"],
+        "data":         data,
+        "errors":       [error] if error else [],
+    }
+
+
 @router.get("/mail", summary="Get inbox triage emails")
 async def get_mail(user: dict = Depends(get_current_user)):
     """

@@ -1,6 +1,6 @@
 {
   "project": "IT Cockpit Teams App",
-  "last_updated": "2026-07-15T18:15:00+05:30",
+  "last_updated": "2026-07-16T14:50:00+05:30",
   "phases": {
     "Phase_1_Scaffolding": {
       "step_1.1": {"task": "Init Vite React App & FastAPI struct", "status": "COMPLETED", "completed": "2026-07-13T15:43:00+05:30", "note": "Initialized folders; added root package.json with workspaces and fixed Vercel tsc build script error."},
@@ -85,6 +85,12 @@
         "status": "COMPLETED",
         "completed": "2026-07-14T09:54:54+05:30",
         "note": "ChatbotWidget.jsx created with FAB button, animated chat window, Copilot Studio iframe. Build: 25 modules, 0 errors."
+      },
+      "step_6.2": {
+        "task": "M365 Categories API Expansion & UI Modularization",
+        "status": "COMPLETED",
+        "completed": "2026-07-16T14:50:00+05:30",
+        "note": "Downgraded MSAL scopes in msalConfig.js to User.Read, Mail.Read, Calendars.Read, Tasks.Read to avoid AD admin approval blocks. Added View in Outlook button links inside InboxTab.jsx using webLink/web_url. Added View Event links in CalendarTab.jsx. Integrated View in To-Do link to MyTasksTab.jsx header and View in Planner link to TeamsTasksTab.jsx. Handled 403 Forbidden cases gracefully inside useM365.js for team_tasks and displayed a warning banner in TeamsTasksTab.jsx. Implemented formatToIST timezone conversion utilities in CalendarTab.jsx, InboxTab.jsx, MyTasksTab.jsx, and TeamsTasksTab.jsx to strictly parse UTC times and render in Indian Standard Time (IST) zone. Exposed account object and logout callback in useTeamsAuth.js. Created profile avatar toggle and dropdown layout in Header.jsx showing user principal details and a Sign Out button. Resolved redirect login loops by introducing stateful MSAL interactionStatus tracking via inProgress state; updated App.jsx routing logic to block login page redirects when interactionStatus is in progress. Manually cleaned up lingering state and code query parameters from the browser history right after handleRedirectPromise resolves. Rebranded application title to ME Cockpit, integrated Air India SATS logo across index.html, Sidebar.jsx, MsalLoginScreen.jsx, and Header.jsx. Cleaned up the top-left section of Header.jsx leaving it completely empty. Refined the branding layout so the logo image stands completely standalone without accompanying title/subtitle texts in Sidebar.jsx and MsalLoginScreen.jsx."
       }
     }
   }

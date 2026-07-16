@@ -45,29 +45,12 @@ export default function MsalLoginScreen({ onLogin, onReset, loading, error }) {
 
       {/* Logo / Brand */}
       <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-        <div style={{
-          width: 72, height: 72,
-          borderRadius: 20,
-          background: 'linear-gradient(135deg, #0d8a8a 0%, #064040 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 36,
-          margin: '0 auto 16px',
-          boxShadow: '0 0 40px rgba(13,138,138,0.4)',
-        }}>
-          ✈️
-        </div>
-        <h1 style={{
-          fontSize: '1.75rem',
-          fontWeight: 800,
-          color: '#f8fafc',
-          margin: '0 0 4px',
-          letterSpacing: '-0.02em',
-        }}>
-          IT Cockpit
-        </h1>
-        <p style={{ color: '#64ffda', fontSize: '0.875rem', fontWeight: 500, margin: 0 }}>
-          Air India SATS — IT Operations Dashboard
-        </p>
+        <img
+          src="https://www.aisats.in/images/AIR%20INDIA%20SATS%20NEW%20LOGO.png"
+          alt="ME Cockpit Logo"
+          className="h-16 w-auto object-contain mx-auto mb-4"
+          style={{ height: '64px', width: 'auto', margin: '0 auto 16px' }}
+        />
       </div>
 
       {/* Sign-in card */}
@@ -222,7 +205,7 @@ export default function MsalLoginScreen({ onLogin, onReset, loading, error }) {
         maxWidth: 400,
       }}>
         Your credentials are handled securely by Microsoft Entra ID.
-        IT Cockpit never stores your password.
+        ME Cockpit never stores your password.
       </p>
 
       {/* CSS keyframes */}

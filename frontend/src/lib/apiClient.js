@@ -80,6 +80,22 @@ export const api = {
   getM365All: (token, authMode) =>
     apiFetch('/api/v1/m365/all', token, {}, authMode),
 
+  /** GET /api/v1/m365/me/messages */
+  getM365Messages: (token, authMode) =>
+    apiFetch('/api/v1/m365/me/messages', token, {}, authMode),
+
+  /** GET /api/v1/m365/me/events */
+  getM365Events: (token, authMode) =>
+    apiFetch('/api/v1/m365/me/events', token, {}, authMode),
+
+  /** GET /api/v1/m365/me/planner/tasks */
+  getM365PlannerTasks: (token, authMode) =>
+    apiFetch('/api/v1/m365/me/planner/tasks', token, {}, authMode),
+
+  /** GET /api/v1/m365/tasks/team */
+  getM365TeamTasks: (token, authMode) =>
+    apiFetch('/api/v1/m365/tasks/team', token, {}, authMode),
+
   /** GET /api/v1/manageengine/all */
   getManageEngineAll: (token, authMode) =>
     apiFetch('/api/v1/manageengine/all', token, {}, authMode),

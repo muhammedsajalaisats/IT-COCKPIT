@@ -30,7 +30,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { PublicClientApplication } from '@azure/msal-browser'
+import { PublicClientApplication, InteractionStatus } from '@azure/msal-browser'
 import { msalConfig, GRAPH_SCOPES } from '../lib/msalConfig'
 
 // ── MSAL singleton (module-level) ─────────────────────────────────────────────
@@ -136,6 +136,8 @@ let _authInitStarted = false
 export function useTeamsAuth() {
   const [token,          setToken] = useState(null)
   const [user,           setUser] = useState(null)
+  const [account,        setAccount] = useState(null)
+  const [inProgress,     setInProgress] = useState(InteractionStatus.None)
   const [loading,        setLoading] = useState(true)
   const [error,          setError] = useState(null)
   const [needsMsalLogin, setNeedsMsalLogin] = useState(false)
@@ -149,6 +151,7 @@ export function useTeamsAuth() {
 
     async function init() {
       setLoading(true)
+      setInProgress(InteractionStatus.Startup)
       try {
         // ────────────────────────────────────────────────────────────────────────
         // PATH 1 — Teams SDK (inside Teams frame)
@@ -166,6 +169,11 @@ export function useTeamsAuth() {
             email: context.user?.loginHint || context.user?.userPrincipalName || '',
             name:  context.user?.displayName || 'IT User',
           })
+          setAccount({
+            name: context.user?.displayName || 'IT User',
+            username: context.user?.loginHint || context.user?.userPrincipalName || '',
+          })
+          setInProgress(InteractionStatus.None)
           return
 
         } catch (teamsErr) {
@@ -186,8 +194,15 @@ export function useTeamsAuth() {
         // PATH 2 — MSAL browser redirect (local dev / plain browser)
         // ────────────────────────────────────────────────────────────────────────
         setNeedsMsalLogin(false)
+        setInProgress(InteractionStatus.HandleRedirect)
 
         const redirectResult = await getMsalInitPromise()
+        
+        // Strip MSAL state & code parameters from URL immediately after processing to prevent routing loop
+        if (window.location.search.includes('state=') || window.location.search.includes('code=')) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         const msal = msalRef.current
 
         // 1. Capture the Redirect Response
@@ -195,8 +210,9 @@ export function useTeamsAuth() {
           console.info('[useTeamsAuth] Redirect callback resolved successfully.', redirectResult)
           
           // 2. Set Active Account
-          if (redirectResult.account) {
-            msal.setActiveAccount(redirectResult.account)
+          const accountToSet = redirectResult.account || msal.getAllAccounts()[0]
+          if (accountToSet) {
+            msal.setActiveAccount(accountToSet)
           }
           
           setToken(redirectResult.accessToken)
@@ -205,6 +221,8 @@ export function useTeamsAuth() {
             email: redirectResult.account?.username || redirectResult.account?.idTokenClaims?.email || '',
             name:  redirectResult.account?.name     || redirectResult.account?.idTokenClaims?.name  || 'IT User',
           })
+          setAccount(accountToSet)
+          setInProgress(InteractionStatus.None)
           return
         }
 
@@ -216,6 +234,7 @@ export function useTeamsAuth() {
 
           try {
             console.info('[useTeamsAuth] Found cached account. Attempting acquireTokenSilent.')
+            setInProgress(InteractionStatus.None) // Silent doesn't block interaction
             const silentPromise = msal.acquireTokenSilent({
               scopes:  GRAPH_SCOPES,
               account,
@@ -231,6 +250,7 @@ export function useTeamsAuth() {
               email: account.username || account.idTokenClaims?.email || '',
               name:  account.name     || account.idTokenClaims?.name  || 'IT User',
             })
+            setAccount(account)
             return
           } catch (silentErr) {
             console.error(
@@ -249,6 +269,7 @@ export function useTeamsAuth() {
         setError(msalErr?.message || 'MSAL initialisation failed')
         setNeedsMsalLogin(true)
       } finally {
+        setInProgress(InteractionStatus.None)
         setLoading(false)
       }
     }
@@ -260,10 +281,16 @@ export function useTeamsAuth() {
   // msalLogin — Trigger loginRedirect flow to strictly avoid popup blocks
   // ────────────────────────────────────────────────────────────────────────────
   const msalLogin = useCallback(async () => {
+    if (inProgress !== InteractionStatus.None) return
     const msal = msalRef.current
     try {
       setLoading(true)
+      setInProgress(InteractionStatus.Login)
       setError(null)
+
+      // Clear custom sessionStorage/localStorage to prevent lingering cache conflicts
+      sessionStorage.clear()
+      localStorage.clear()
 
       await getMsalInitPromise()
 
@@ -289,7 +316,9 @@ export function useTeamsAuth() {
             email: account.username || account.idTokenClaims?.email || '',
             name:  account.name     || account.idTokenClaims?.name  || 'IT User',
           })
+          setAccount(account)
           setNeedsMsalLogin(false)
+          setInProgress(InteractionStatus.None)
           return
         } catch (silentErr) {
           console.error('[useTeamsAuth] Silent acquisition failed, redirecting...', silentErr)
@@ -305,6 +334,39 @@ export function useTeamsAuth() {
     } catch (err) {
       console.error('[useTeamsAuth] loginRedirect failed:', err)
       setError(err?.message || 'Redirect login failed')
+      setInProgress(InteractionStatus.None)
+    } finally {
+      setLoading(false)
+    }
+  }, [inProgress])
+
+  // logout — Clear account info and MSAL sessions
+  const logout = useCallback(async () => {
+    const msal = msalRef.current
+    try {
+      setLoading(true)
+      setInProgress(InteractionStatus.Logout)
+
+      // Explicitly call setActiveAccount(null) before redirecting
+      msal.setActiveAccount(null)
+
+      // Clear all local React state related to the user
+      setToken(null)
+      setUser(null)
+      setAccount(null)
+      setAuthMode(null)
+
+      sessionStorage.clear()
+      localStorage.clear()
+
+      await getMsalInitPromise()
+      await msal.logoutRedirect({
+        postLogoutRedirectUri: window.location.origin,
+      })
+    } catch (err) {
+      console.error('[useTeamsAuth] MSAL logout failed:', err)
+      setError(err?.message || 'Logout failed')
+      setInProgress(InteractionStatus.None)
     } finally {
       setLoading(false)
     }
@@ -321,5 +383,7 @@ export function useTeamsAuth() {
     }
   }, [])
 
-  return { token, user, loading, error, needsMsalLogin, msalLogin, resetMsalState, authMode }
+  const isAuthenticated = !!(token && (account || (authMode === 'teams' && user))) && inProgress === InteractionStatus.None
+
+  return { token, user, account, isAuthenticated, inProgress, InteractionStatus, loading, error, needsMsalLogin, msalLogin, logout, resetMsalState, authMode }
 }

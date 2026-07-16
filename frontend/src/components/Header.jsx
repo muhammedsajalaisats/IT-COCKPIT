@@ -7,15 +7,16 @@
 
 import { useState, useEffect } from 'react'
 
-export default function Header({ onRefresh, isLoading = false, lastRefreshedAt = null }) {
+export default function Header({ onRefresh, isLoading = false, lastRefreshedAt = null, account = null, logout = null }) {
   const [time, setTime] = useState(new Date())
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
 
-  const fmt     = (d) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const fmt = (d) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const fmtDate = (d) => d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
   // Show how long ago the data was generated (from the API timestamp)
@@ -23,7 +24,7 @@ export default function Header({ onRefresh, isLoading = false, lastRefreshedAt =
   if (lastRefreshedAt) {
     const last = new Date(lastRefreshedAt)
     const secs = Math.max(0, Math.floor((time - last) / 1000))
-    sinceText  = secs < 60 ? `${secs}s ago` : `${Math.floor(secs / 60)}m ago`
+    sinceText = secs < 60 ? `${secs}s ago` : `${Math.floor(secs / 60)}m ago`
   }
 
   return (
@@ -45,29 +46,8 @@ export default function Header({ onRefresh, isLoading = false, lastRefreshedAt =
         justifyContent: 'space-between',
         gap: '16px',
       }}>
-        {/* Left: Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: '10px', flexShrink: 0,
-            background: 'linear-gradient(135deg, var(--teal) 0%, var(--accent) 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(13,138,138,0.5)',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <path d="M8 21h8M12 17v4" />
-              <path d="M7 8h3M7 11h3M14 8h3M14 11h3" />
-            </svg>
-          </div>
-          <div>
-            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
-              IT Cockpit
-            </h1>
-            <p style={{ fontSize: '11px', color: 'var(--text-dim)', letterSpacing: '0.3px' }}>
-              Air India SATS
-            </p>
-          </div>
-        </div>
+        {/* Left: Completely empty spacer */}
+        <div style={{ minWidth: 0 }} />
 
         {/* Center: Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -118,15 +98,89 @@ export default function Header({ onRefresh, isLoading = false, lastRefreshedAt =
             {isLoading ? 'Loading…' : 'Refresh'}
           </button>
 
-          {/* Avatar */}
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-            background: 'linear-gradient(135deg, var(--teal) 0%, #0b5a8a 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, color: 'white',
-            border: '2px solid var(--border)', cursor: 'pointer',
-          }}>
-            IT
+          {/* Avatar and Dropdown */}
+          <div style={{ position: 'relative' }}>
+            <button
+              id="header-profile-avatar"
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              type="button"
+              style={{
+                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                background: 'linear-gradient(135deg, var(--teal) 0%, #0b5a8a 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '13px', fontWeight: 700, color: 'white',
+                border: '2px solid var(--border)', cursor: 'pointer',
+                outline: 'none', position: 'relative', zIndex: 110,
+              }}
+            >
+              {account?.name ? account.name.charAt(0).toUpperCase() : 'IT'}
+            </button>
+
+            {isProfileOpen && (
+              <div
+                id="header-profile-dropdown"
+                style={{
+                  position: 'absolute',
+                  top: '46px',
+                  right: 0,
+                  width: '240px',
+                  background: 'rgba(11,30,63,0.98)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  zIndex: 200,
+                  textAlign: 'left',
+                }}
+              >
+                {/* User Info */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {account?.name || 'ME Cockpit User'}
+                  </p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {account?.username || 'user@airsats.com'}
+                  </p>
+                </div>
+
+                {/* Sign Out Button */}
+                {logout && (
+                  <button
+                    id="btn-sign-out"
+                    onClick={() => {
+                      setIsProfileOpen(false)
+                      logout()
+                    }}
+                    type="button"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 77, 109, 0.1)',
+                      border: '1px solid rgba(255, 77, 109, 0.3)',
+                      color: 'var(--red)',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      textAlign: 'center',
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.background = 'rgba(255, 77, 109, 0.2)'
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = 'rgba(255, 77, 109, 0.1)'
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

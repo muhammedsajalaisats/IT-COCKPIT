@@ -33,8 +33,8 @@ export const msalConfig = {
  * These match the permissions declared in the Azure App Registration.
  */
 export const GRAPH_SCOPES = [
-  'Mail.Read',
-  'Tasks.Read',
-  'Calendars.Read',
   'User.Read',
+  'Mail.Read',
+  'Calendars.Read',
+  'Tasks.Read',
 ]
