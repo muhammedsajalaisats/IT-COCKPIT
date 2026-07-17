@@ -3,6 +3,7 @@ node_modules/
 
 # Python virtual environment and bytecode
 venv/
+.venv/
 __pycache__/
 *.pyc
 
@@ -14,3 +15,6 @@ __pycache__/
 # Production builds
 dist/
 build/
+
+# Local databases
+*.db

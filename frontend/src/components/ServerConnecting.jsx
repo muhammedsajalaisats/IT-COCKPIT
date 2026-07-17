@@ -11,14 +11,30 @@
 import { useEffect, useRef, useState } from 'react'
 
 const RETRY_INTERVAL_MS = 4000
-const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const rawBase = import.meta.env.VITE_API_BASE_URL || ''
 const HEALTH_URL = rawBase.replace(/\/$/, '') + '/api/health'
 
 export default function ServerConnecting({ onConnected }) {
   const [countdown,    setCountdown   ] = useState(RETRY_INTERVAL_MS / 1000)
   const [attempt,      setAttempt     ] = useState(1)
   const [pingStatus,   setPingStatus  ] = useState('waiting') // 'waiting' | 'checking' | 'failed'
+  const [loadingMessage, setLoadingMessage] = useState('Connecting to ME Cockpit...')
   const intervalRef = useRef(null)
+
+  useEffect(() => {
+    const t1 = setTimeout(() => {
+      setLoadingMessage('Waking up the backend server...')
+    }, 5000)
+
+    const t2 = setTimeout(() => {
+      setLoadingMessage('Server cold start in progress. This may take up to a minute on the free tier...')
+    }, 15000)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [])
 
   useEffect(() => {
     let tick = RETRY_INTERVAL_MS / 1000
@@ -71,6 +87,18 @@ export default function ServerConnecting({ onConnected }) {
       gap: '24px',
       padding: '24px',
     }}>
+      {/* Brand logo */}
+      <img
+        src="https://www.aisats.in/images/AIR%20INDIA%20SATS%20NEW%20LOGO.png"
+        alt="Air India SATS Logo"
+        style={{
+          height: '42px',
+          objectFit: 'contain',
+          marginBottom: '8px',
+          filter: 'drop-shadow(0 0 12px rgba(13,138,138,0.2))',
+        }}
+      />
+
       {/* Animated radar ring */}
       <div style={{ position: 'relative', width: 96, height: 96 }}>
         <div style={{
@@ -111,13 +139,15 @@ export default function ServerConnecting({ onConnected }) {
       {/* Status text */}
       <div style={{ textAlign: 'center', maxWidth: 480 }}>
         <h2 style={{
-          fontSize: '1.375rem',
+          fontSize: '1.25rem',
           fontWeight: 700,
           color: '#f8fafc',
-          marginBottom: 8,
+          marginBottom: 12,
           letterSpacing: '-0.01em',
+          lineHeight: 1.4,
+          padding: '0 16px',
         }}>
-          Connecting to server…
+          {loadingMessage}
         </h2>
         <p style={{
           color: '#94a3b8',
@@ -125,9 +155,9 @@ export default function ServerConnecting({ onConnected }) {
           lineHeight: 1.6,
           marginBottom: 16,
         }}>
-          The FastAPI backend isn't responding yet.
+          The FastAPI backend is initializing.
           {pingStatus === 'checking'
-            ? ' Checking now…'
+            ? ' Checking health status…'
             : ` Retry #${attempt} in ${countdown}s.`
           }
         </p>

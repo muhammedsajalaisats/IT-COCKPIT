@@ -19,10 +19,10 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 
 /* ── Heat color helper ──────────────────────── */
 function heatColor(tickets) {
-  if (tickets >= 80) return { bg: 'rgba(255,77,109,0.25)',  border: 'rgba(255,77,109,0.6)',  text: '#ff4d6d' }
-  if (tickets >= 50) return { bg: 'rgba(255,184,48,0.2)',   border: 'rgba(255,184,48,0.5)',  text: '#ffb830' }
-  if (tickets >= 25) return { bg: 'rgba(13,138,138,0.2)',   border: 'rgba(13,138,138,0.5)',  text: '#0fb3b3' }
-  return               { bg: 'rgba(100,255,218,0.1)',  border: 'rgba(100,255,218,0.3)', text: '#64ffda' }
+  if (tickets >= 80) return { bg: 'rgba(255,77,109,0.25)', border: 'rgba(255,77,109,0.6)', text: '#ff4d6d' }
+  if (tickets >= 50) return { bg: 'rgba(255,184,48,0.2)', border: 'rgba(255,184,48,0.5)', text: '#ffb830' }
+  if (tickets >= 25) return { bg: 'rgba(13,138,138,0.2)', border: 'rgba(13,138,138,0.5)', text: '#0fb3b3' }
+  return { bg: 'rgba(100,255,218,0.1)', border: 'rgba(100,255,218,0.3)', text: '#64ffda' }
 }
 
 /* ── Chart defaults ─────────────────────────── */
@@ -83,12 +83,12 @@ const CHART_COLORS = [
 /* ── Main Component ─────────────────────────── */
 export default function ManageEngine({
   isLoading,
-  stations   = [],
+  stations = [],
   categories = [],
-  sla        = null,
-  summary    = null,
-  error      = null,
-  stale      = false,
+  sla = null,
+  summary = null,
+  error = null,
+  stale = false,
 }) {
   if (isLoading) {
     return (
@@ -138,9 +138,9 @@ export default function ManageEngine({
   // Station list — support both 'name'/'tickets'/'sla' (old mock) and
   // 'code'/'open_tickets'/'sla_compliance_pct' (API contract)
   const stationList = stations.map(s => ({
-    name:    s.code  ?? s.name,
+    name: s.code ?? s.name,
     tickets: s.open_tickets ?? s.tickets ?? 0,
-    sla:     s.sla_compliance_pct ?? s.sla ?? 0,
+    sla: s.sla_compliance_pct ?? s.sla ?? 0,
   }))
 
   const summaryValues = summary ?? { avg_resolution_hours: '—', first_call_resolution_pct: '—', escalated_tickets: '—' }
@@ -157,8 +157,8 @@ export default function ManageEngine({
             color: 'var(--teal-light)',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
             </svg>
           </div>
           <div>
@@ -188,9 +188,14 @@ export default function ManageEngine({
         </p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {(stationList.length ? stationList : [
-            { name: 'DEL', tickets: 87, sla: 91 }, { name: 'BLR', tickets: 41, sla: 97 },
-            { name: 'TRV', tickets: 64, sla: 88 }, { name: 'COK', tickets: 28, sla: 95 },
-            { name: 'HYD', tickets: 73, sla: 90 },
+            { name: 'DEL', tickets: 87, sla: 91 },
+            { name: 'TRV', tickets: 64, sla: 88 },
+            { name: 'IXE', tickets: 52, sla: 95 },
+            { name: 'BLR', tickets: 41, sla: 97 },
+            { name: 'HYD', tickets: 38, sla: 93 },
+            { name: 'IXR', tickets: 29, sla: 82 },
+            { name: 'CHQ', tickets: 18, sla: 100 },
+            { name: 'COK', tickets: 12, sla: 100 },
           ]).map(s => {
             const c = heatColor(s.tickets)
             return (
@@ -236,7 +241,7 @@ export default function ManageEngine({
         {[
           { label: 'Avg Resolution', value: summary ? `${summaryValues.avg_resolution_hours}h` : '4.2h', color: 'var(--teal-light)' },
           { label: 'First Call Res.', value: summary ? `${summaryValues.first_call_resolution_pct}%` : '68%', color: 'var(--accent)' },
-          { label: 'Escalated',       value: summary ? `${summaryValues.escalated_tickets}` : '31',         color: 'var(--amber)' },
+          { label: 'Escalated', value: summary ? `${summaryValues.escalated_tickets}` : '31', color: 'var(--amber)' },
         ].map(m => (
           <div key={m.label} className="card" style={{ flex: 1, padding: '12px 14px', gap: 0 }}>
             <div style={{ fontSize: '18px', fontWeight: 700, color: m.color }}>{m.value}</div>

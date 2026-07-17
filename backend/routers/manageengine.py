@@ -75,13 +75,12 @@ _MOCK_KPIS = {
 
 _MOCK_STATIONS = [
     {"code": "DEL", "open_tickets": 87, "sla_compliance_pct": 91.0},
-    {"code": "BOM", "open_tickets": 64, "sla_compliance_pct": 88.0},
-    {"code": "MAA", "open_tickets": 52, "sla_compliance_pct": 95.0},
+    {"code": "TRV", "open_tickets": 64, "sla_compliance_pct": 88.0},
+    {"code": "IXE", "open_tickets": 52, "sla_compliance_pct": 95.0},
     {"code": "BLR", "open_tickets": 41, "sla_compliance_pct": 97.0},
     {"code": "HYD", "open_tickets": 38, "sla_compliance_pct": 93.0},
-    {"code": "CCU", "open_tickets": 29, "sla_compliance_pct": 82.0},
-    {"code": "GOI", "open_tickets": 18, "sla_compliance_pct": 100.0},
-    {"code": "AMD", "open_tickets": 15, "sla_compliance_pct": 99.0},
+    {"code": "IXR", "open_tickets": 29, "sla_compliance_pct": 82.0},
+    {"code": "CHQ", "open_tickets": 18, "sla_compliance_pct": 100.0},
     {"code": "COK", "open_tickets": 12, "sla_compliance_pct": 100.0},
 ]
 
